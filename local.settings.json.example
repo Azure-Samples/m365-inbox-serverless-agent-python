@@ -1,0 +1,14 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "TO_EMAIL": "you@example.com",
+    "MODEL_DEPLOYMENT_NAME": "gpt-4o-mini",
+    "AZURE_AI_PROJECT_ENDPOINT": "https://<account>.services.ai.azure.com/api/projects/<project>",
+    "OUTLOOK_MCP_ENDPOINT": "",
+    "TEAMS_MCP_ENDPOINT": "",
+    "TEAMS_TEAM_ID": "<team-id>",
+    "TEAMS_CHANNEL_ID": "<channel-id>"
+  }
+}

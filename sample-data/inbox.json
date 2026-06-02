@@ -1,0 +1,122 @@
+[
+  {
+    "id": "AAMkAGI001VIPUrgentExample",
+    "subject": "URGENT: Customer renewal blocker needs decision today",
+    "from": {
+      "emailAddress": {
+        "name": "Morgan Lee",
+        "address": "vip-name@example.com"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Inbox Agent",
+          "address": "inbox.agent@example.com"
+        }
+      }
+    ],
+    "receivedDateTime": "2026-06-02T15:30:00Z",
+    "isRead": false,
+    "body": {
+      "contentType": "html",
+      "content": "<p>Hi team, the Contoso Example renewal is blocked on the discount approval. We need a decision today before 5 PM UTC or the customer will pause procurement.</p><p>Please alert the account team in Teams and confirm who owns the approval.</p>"
+    }
+  },
+  {
+    "id": "AAMkAGI002MeetingRequestExample",
+    "subject": "Can we schedule a 30-minute roadmap review next week?",
+    "from": {
+      "emailAddress": {
+        "name": "Alex Chen",
+        "address": "alex.chen@example.com"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Inbox Agent",
+          "address": "inbox.agent@example.com"
+        }
+      }
+    ],
+    "receivedDateTime": "2026-06-02T16:05:00Z",
+    "isRead": false,
+    "body": {
+      "contentType": "html",
+      "content": "<p>Hello, could you help find a 30-minute slot next Tuesday or Wednesday for a roadmap review?</p><p>Agenda: launch milestones, open risks, and owners for the preview checklist.</p>"
+    }
+  },
+  {
+    "id": "AAMkAGI003IncidentAlertExample",
+    "subject": "P1 IcM: Checkout API elevated failures",
+    "from": {
+      "emailAddress": {
+        "name": "Incident Bot",
+        "address": "incident.bot@contoso.example"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "On Call",
+          "address": "oncall@example.com"
+        }
+      }
+    ],
+    "receivedDateTime": "2026-06-02T16:42:00Z",
+    "isRead": false,
+    "body": {
+      "contentType": "html",
+      "content": "<p>Severity: P1</p><p>Product: Checkout API</p><p>Impact: 18% of create-order requests are failing in the EU test ring.</p><p>Incident commander: Riley Stone. Please post status to the launch channel and track mitigation updates.</p>"
+    }
+  },
+  {
+    "id": "AAMkAGI004FyiNewsletterExample",
+    "subject": "FYI: Weekly product newsletter",
+    "from": {
+      "emailAddress": {
+        "name": "Product Updates",
+        "address": "updates@contoso.example"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Inbox Agent",
+          "address": "inbox.agent@example.com"
+        }
+      }
+    ],
+    "receivedDateTime": "2026-06-02T17:10:00Z",
+    "isRead": false,
+    "body": {
+      "contentType": "html",
+      "content": "<p>Here are this week's product updates, community links, and optional reading.</p><p>No action is required.</p>"
+    }
+  },
+  {
+    "id": "AAMkAGI005ActionRequiredExample",
+    "subject": "Action required: Review launch FAQ by Friday",
+    "from": {
+      "emailAddress": {
+        "name": "Priya Patel",
+        "address": "priya.patel@contoso.example"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Inbox Agent",
+          "address": "inbox.agent@example.com"
+        }
+      }
+    ],
+    "receivedDateTime": "2026-06-02T18:25:00Z",
+    "isRead": false,
+    "body": {
+      "contentType": "html",
+      "content": "<p>Could you review the launch FAQ by Friday and send back any corrections?</p><p>The most important sections are pricing, support boundaries, and the escalation path for preview customers.</p>"
+    }
+  }
+]

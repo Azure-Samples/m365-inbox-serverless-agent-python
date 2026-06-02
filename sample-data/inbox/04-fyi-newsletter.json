@@ -1,0 +1,24 @@
+{
+  "id": "AAMkAGI004FyiNewsletterExample",
+  "subject": "FYI: Weekly product newsletter",
+  "from": {
+    "emailAddress": {
+      "name": "Product Updates",
+      "address": "updates@contoso.example"
+    }
+  },
+  "toRecipients": [
+    {
+      "emailAddress": {
+        "name": "Inbox Agent",
+        "address": "inbox.agent@example.com"
+      }
+    }
+  ],
+  "receivedDateTime": "2026-06-02T17:10:00Z",
+  "isRead": false,
+  "body": {
+    "contentType": "html",
+    "content": "<p>Here are this week's product updates, community links, and optional reading.</p><p>No action is required.</p>"
+  }
+}

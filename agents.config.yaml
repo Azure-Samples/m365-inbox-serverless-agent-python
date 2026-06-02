@@ -1,0 +1,4 @@
+# Global configuration for all agents in this function app.
+
+model: $MODEL_DEPLOYMENT_NAME
+timeout: 300

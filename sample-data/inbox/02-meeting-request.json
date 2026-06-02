@@ -1,0 +1,24 @@
+{
+  "id": "AAMkAGI002MeetingRequestExample",
+  "subject": "Can we schedule a 30-minute roadmap review next week?",
+  "from": {
+    "emailAddress": {
+      "name": "Alex Chen",
+      "address": "alex.chen@example.com"
+    }
+  },
+  "toRecipients": [
+    {
+      "emailAddress": {
+        "name": "Inbox Agent",
+        "address": "inbox.agent@example.com"
+      }
+    }
+  ],
+  "receivedDateTime": "2026-06-02T16:05:00Z",
+  "isRead": false,
+  "body": {
+    "contentType": "html",
+    "content": "<p>Hello, could you help find a 30-minute slot next Tuesday or Wednesday for a roadmap review?</p><p>Agenda: launch milestones, open risks, and owners for the preview checklist.</p>"
+  }
+}

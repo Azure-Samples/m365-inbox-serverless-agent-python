@@ -1,0 +1,4 @@
+azurefunctions-agents-runtime
+azure-functions
+azure-identity
+pydantic

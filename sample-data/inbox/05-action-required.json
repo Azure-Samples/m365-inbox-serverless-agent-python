@@ -1,0 +1,24 @@
+{
+  "id": "AAMkAGI005ActionRequiredExample",
+  "subject": "Action required: Review launch FAQ by Friday",
+  "from": {
+    "emailAddress": {
+      "name": "Priya Patel",
+      "address": "priya.patel@contoso.example"
+    }
+  },
+  "toRecipients": [
+    {
+      "emailAddress": {
+        "name": "Inbox Agent",
+        "address": "inbox.agent@example.com"
+      }
+    }
+  ],
+  "receivedDateTime": "2026-06-02T18:25:00Z",
+  "isRead": false,
+  "body": {
+    "contentType": "html",
+    "content": "<p>Could you review the launch FAQ by Friday and send back any corrections?</p><p>The most important sections are pricing, support boundaries, and the escalation path for preview customers.</p>"
+  }
+}

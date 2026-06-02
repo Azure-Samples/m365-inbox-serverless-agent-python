@@ -1,0 +1,24 @@
+{
+  "id": "AAMkAGI003IncidentAlertExample",
+  "subject": "P1 IcM: Checkout API elevated failures",
+  "from": {
+    "emailAddress": {
+      "name": "Incident Bot",
+      "address": "incident.bot@contoso.example"
+    }
+  },
+  "toRecipients": [
+    {
+      "emailAddress": {
+        "name": "On Call",
+        "address": "oncall@example.com"
+      }
+    }
+  ],
+  "receivedDateTime": "2026-06-02T16:42:00Z",
+  "isRead": false,
+  "body": {
+    "contentType": "html",
+    "content": "<p>Severity: P1</p><p>Product: Checkout API</p><p>Impact: 18% of create-order requests are failing in the EU test ring.</p><p>Incident commander: Riley Stone. Please post status to the launch channel and track mitigation updates.</p>"
+  }
+}

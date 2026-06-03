@@ -73,6 +73,15 @@ This path proves the agent loop works **without Azure resources or connector aut
    ./scripts/hydrate-local-settings.sh
    ```
 
+   Windows PowerShell:
+
+   ```powershell
+   az login                                # one-time
+   pwsh -File ./scripts/hydrate-local-settings.ps1
+   ```
+
+   > `pwsh -File <path>` runs the script without triggering Windows ExecutionPolicy — no `Set-ExecutionPolicy` needed.
+
 3. Terminal 1: start the Functions host:
 
    ```bash

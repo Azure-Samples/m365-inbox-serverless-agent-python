@@ -70,20 +70,20 @@ flowchart TD
 
 ## Prerequisites
 
-- [Python 3.13](https://www.python.org/downloads/)
+- [uv](https://docs.astral.sh/uv/) (Python package & project manager — installs the right Python automatically)
 - [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local)
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for Azure deployment
 - Azurite or another `AzureWebJobsStorage` value for timer triggers
 - For production: an Azure subscription, a Microsoft Foundry project/model deployment, and permission to authorize Microsoft 365 connectors
 
+> **Note on `requirements.txt`:** kept in sync with `pyproject.toml` so Azure Functions Python deployment (Oryx build) works out of the box. Local development should use `uv` per the steps below.
+
 ## Quickstart
 
-1. Install dependencies:
+1. Install dependencies (uv creates `.venv` and resolves automatically):
 
    ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
+   uv sync
    ```
 
 2. Create local settings from the sample owned by the Functions app:
@@ -97,13 +97,13 @@ flowchart TD
 4. Start the Functions host:
 
    ```bash
-   func start
+   uv run func start
    ```
 
 5. In a second terminal, run the local test client:
 
    ```bash
-   python3 chat.py
+   uv run python chat.py
    ```
 
 ## Source Code

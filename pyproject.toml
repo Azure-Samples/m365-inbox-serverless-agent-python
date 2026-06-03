@@ -1,0 +1,23 @@
+[project]
+name = "m365-inbox-agent-functions-python"
+version = "0.1.0"
+description = "M365 inbox-triage sample for the Azure Functions Serverless Agents Runtime (preview)."
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "azurefunctions-agents-runtime",
+    "azure-functions",
+    "azure-identity",
+    "pydantic",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]

@@ -1,9 +1,10 @@
 """Local test client for the M365 Inbox Agent function app."""
+
 import json
 import os
-from pathlib import Path
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 BASE_URL = os.environ.get("AGENT_URL", "http://localhost:7071").rstrip("/")
 FUNCTION_KEY = os.environ.get("FUNCTION_KEY", "")

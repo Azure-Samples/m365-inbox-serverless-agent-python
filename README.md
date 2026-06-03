@@ -23,7 +23,7 @@ Once you start editing rules, sample inbox data, or running against your real M3
 
 ```bash
 OWNER=$(gh api user --jq .login)   # or override with your org
-REPO=my-inbox-agent                # pick any private repo name
+REPO=my-inbox-agent                # or override with any name
 
 gh repo create "$OWNER/$REPO" \
   --template Azure-Samples/m365-inbox-agent-functions-python \

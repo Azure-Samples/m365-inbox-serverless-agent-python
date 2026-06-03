@@ -6,7 +6,12 @@ targetScope = 'subscription'
 param environmentName string
 
 @minLength(1)
-@description('Primary location for all resources and the Flex Consumption Function App.')
+@description('Primary location. Constrained to regions where gpt-5-mini / gpt-5.4-mini are available AND Flex Consumption is supported.')
+@allowed([
+  'eastus2'
+  'eastus'
+  'westus3'
+])
 @metadata({
   azd: {
     type: 'location'

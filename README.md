@@ -18,22 +18,15 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="22" align="center"> Make it yours (private copy)
 
-Once you start editing rules, sample inbox data, or running against your real M365 tenant, you'll want a **private** copy — public forks cannot be made private on GitHub.
+Once you start editing rules, sample inbox data, or running against your real M365 tenant, you'll want a **private** copy — public forks cannot be made private on GitHub. Use this repo as a template instead: click <kbd>Use this template</kbd> at the top of GitHub and choose **Private**, or with [GitHub CLI](https://cli.github.com/):
 
-Two safe ways to do that:
+```bash
+gh repo create my-org/my-inbox-agent \
+  --template Azure-Samples/m365-inbox-agent-functions-python \
+  --private --clone
+```
 
-1. **Use this template** (recommended) — click <kbd>Use this template</kbd> at the top of this repo and choose **Private**. This creates an independent repo with no fork relationship, so accidental PRs back to `Azure-Samples` are not possible. With [GitHub CLI](https://cli.github.com/):
-   ```bash
-   gh repo create my-org/my-inbox-agent \
-     --template Azure-Samples/m365-inbox-agent-functions-python \
-     --private --clone
-   ```
-2. **Clone, then push to a new private repo:**
-   ```bash
-   gh repo clone Azure-Samples/m365-inbox-agent-functions-python my-inbox-agent
-   cd my-inbox-agent
-   gh repo create my-org/my-inbox-agent --private --source=. --remote=origin --push
-   ```
+This creates an independent repo with no fork relationship, so accidental PRs back to `Azure-Samples` are not possible.
 
 Files most likely to contain personal/tenant information:
 

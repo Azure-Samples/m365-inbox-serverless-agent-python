@@ -73,13 +73,13 @@ param projectCapabilityHostName string = 'caphostproj'
 param aiServicesName string = 'agent-ai-services'
 
 @description('Model name for deployment.')
-param modelName string = 'gpt-5-mini'
+param modelName string = 'gpt-5.4-mini'
 
 @description('Model format for deployment.')
 param modelFormat string = 'OpenAI'
 
 @description('Model version for deployment.')
-param modelVersion string = '2025-08-07'
+param modelVersion string = '2026-03-17'
 
 @description('Model deployment SKU name.')
 param modelSkuName string = 'GlobalStandard'
@@ -88,7 +88,7 @@ param modelSkuName string = 'GlobalStandard'
 param modelCapacity int = 50
 
 @description('Name for the model deployment in Azure AI Services.')
-param modelDeploymentName string = 'chat'
+param modelDeploymentName string = 'gpt-5.4-mini'
 
 @description('Name of the Cosmos DB account for agent thread storage.')
 param cosmosDbName string = 'agent-ai-cosmos'

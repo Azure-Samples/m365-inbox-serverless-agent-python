@@ -6,7 +6,7 @@
 
     "AZURE_FUNCTIONS_AGENTS_PROVIDER": "foundry",
     "FOUNDRY_PROJECT_ENDPOINT": "<set from: azd env get-value FOUNDRY_PROJECT_ENDPOINT>",
-    "FOUNDRY_MODEL": "gpt-5-mini",
+    "FOUNDRY_MODEL": "gpt-5.4-mini",
 
     "TO_EMAIL": "you@example.com",
     "OUTLOOK_MCP_ENDPOINT": "",

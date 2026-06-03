@@ -333,7 +333,7 @@ The agents runtime auto-selects a provider from environment variables. This samp
 ```bash
 AZURE_FUNCTIONS_AGENTS_PROVIDER=foundry
 FOUNDRY_PROJECT_ENDPOINT=https://<your-ai-services>.services.ai.azure.com/api/projects/<project>
-FOUNDRY_MODEL=gpt-5-mini
+FOUNDRY_MODEL=gpt-5.4-mini
 ```
 
 Local auth flows through `DefaultAzureCredential` (your `az login`); deployed auth uses the function app's user-assigned managed identity (`AZURE_CLIENT_ID`).

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from azure_functions_agents import tool
 
+from tools._log import tool_log
 from tools.action_log import append_action
 
 
@@ -22,7 +23,7 @@ async def send_reply(
     body_html: str,
     in_reply_to_id: str | None = None,
 ) -> str:
-    """Send an email reply or digest. MCP preferred; fallback writes `out/*.eml`.
+    """Send an email reply or digest (offline stub writes `out/*.eml`).
 
     Args:
         to: Recipient email address.
@@ -49,5 +50,11 @@ async def send_reply(
         f"{body_html}\n",
         encoding="utf-8",
     )
-    append_action(f'inbox-triage send_reply (offline) to={to} subject="{subject}"')
-    return f"ok: wrote {path.relative_to(Path.cwd())}"
+    rel = path.relative_to(Path(__file__).resolve().parent.parent)
+    tool_log(
+        "send_reply",
+        {"to": to, "subject": subject, "body_len": len(body_html), "in_reply_to_id": in_reply_to_id},
+        f"wrote {rel}",
+    )
+    append_action(f'send_reply to={to} subject="{subject}" file={rel}')
+    return f"ok: wrote {rel}"

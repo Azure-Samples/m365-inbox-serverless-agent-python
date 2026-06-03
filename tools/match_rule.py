@@ -10,6 +10,7 @@ from typing import Any
 
 from azure_functions_agents import tool
 
+from tools._log import tool_log
 from tools.action_log import append_action
 
 
@@ -25,12 +26,13 @@ def _field(mail: dict[str, Any], *names: str) -> str:
 
 @tool
 async def match_rule(mail: dict[str, Any], rules_text: str) -> dict[str, Any] | None:
-    """Return the first VIP/special rule match. MCP is not needed for this helper.
+    """Return the first VIP/special rule match for a mail object.
 
     Args:
         mail: Mail object with from, subject, body/preview, and id fields.
         rules_text: Markdown rule text, normally from skills/vip-rules.md.
     """
+    subject_preview = str(mail.get("subject", "<no subject>"))[:60]
     sender = _field(mail, "from", "sender").lower()
     subject = _field(mail, "subject").lower()
     body = _field(mail, "body", "bodyPreview", "preview").lower()
@@ -50,13 +52,23 @@ async def match_rule(mail: dict[str, Any], rules_text: str) -> dict[str, Any] | 
 
     if matches:
         first = matches[0]
+        tool_log(
+            "match_rule",
+            {"subject": subject_preview, "rules_len": len(rules_text)},
+            f'MATCH pattern="{first["pattern"]}" action="{first["action"]}"',
+            offline=False,
+        )
         append_action(
-            f'inbox-triage match_rule matched "{mail.get("subject", "unknown subject")}" '
+            f'match_rule MATCH "{subject_preview}" '
             f'pattern="{first["pattern"]}" action="{first["action"]}"'
         )
         return first
 
-    append_action(
-        f'inbox-triage match_rule no match for "{mail.get("subject", "unknown subject")}"'
+    tool_log(
+        "match_rule",
+        {"subject": subject_preview, "rules_len": len(rules_text)},
+        "no match",
+        offline=False,
     )
+    append_action(f'match_rule no-match "{subject_preview}"')
     return None

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from azure_functions_agents import tool
 
+from tools._log import tool_log
 from tools.action_log import append_action
 
 
@@ -21,7 +22,7 @@ async def post_teams(
     body_html: str,
     subject: str | None = None,
 ) -> str:
-    """Post a Teams channel message. MCP preferred; fallback writes `out/teams-*.md`.
+    """Post a Teams channel message (offline stub writes `out/teams-*.md`).
 
     Args:
         team_id: Teams team id or environment placeholder.
@@ -44,5 +45,11 @@ async def post_teams(
         encoding="utf-8",
     )
     summary = re.sub(r"\s+", " ", body).strip()[:120]
-    append_action(f'inbox-triage post_teams (offline) channel={channel_id} summary="{summary}"')
-    return f"ok: wrote {path.relative_to(Path.cwd())}"
+    rel = path.relative_to(Path(__file__).resolve().parent.parent)
+    tool_log(
+        "post_teams",
+        {"team_id": team_id, "channel_id": channel_id, "subject": subject, "body_len": len(body_html)},
+        f"wrote {rel}",
+    )
+    append_action(f'post_teams channel={channel_id} summary="{summary}" file={rel}')
+    return f"ok: wrote {rel}"

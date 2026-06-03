@@ -22,8 +22,8 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 Once you start editing rules, sample inbox data, or running against your real M365 tenant, you'll want a **private** copy. Public forks cannot be made private on GitHub. Use this repo as a template instead: click <kbd>Use this template</kbd> at the top of GitHub and choose **Private**, or with [GitHub CLI](https://cli.github.com/):
 
 ```bash
-OWNER=your-github-username       # or your org
-REPO=your-repo-name
+OWNER=$(gh api user --jq .login)   # or override with your org
+REPO=my-inbox-agent                # pick any private repo name
 
 gh repo create "$OWNER/$REPO" \
   --template Azure-Samples/m365-inbox-agent-functions-python \

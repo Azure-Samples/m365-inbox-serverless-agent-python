@@ -55,7 +55,7 @@ flowchart TD
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg" width="22" align="center"> Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) (recommend Python 3.13+)
-- [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local)
+- [Azure Functions CLI (v5 preview)](https://learn.microsoft.com/en-us/azure/azure-functions/functions-cli-develop-local?pivots=programming-language-python)
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for Azure deployment
 - Azurite or another `AzureWebJobsStorage` value for timer triggers
 - For production: an Azure subscription, a Microsoft Foundry project/model deployment, and permission to authorize Microsoft 365 connectors
@@ -64,33 +64,40 @@ flowchart TD
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Rocket/SVG/ic_fluent_rocket_24_regular.svg" width="22" align="center"> Quickstart
 
-This path proves the agent loop works **without Azure resources or connector authorization**. With MCP endpoints blank, the Python fallback tools read mock mail from `sample-data/inbox/*.json`, classify it, and write the local actions they would have taken to `out/read-log.txt`. You can see reasoning in the `func start` terminal and action records in the log. No real email is sent and no Teams post is made.
+This path proves the agent loop works **without Azure resources or connector authorization**. With MCP endpoints blank, the Python fallback tools read mock mail from `sample-data/inbox/*.json`, classify it, and write the local actions they would have taken to `out/read-log.txt`. You can see reasoning in the `func run` terminal and action records in the log. No real email is sent and no Teams post is made.
 
-1. Install dependencies:
+1. Install the v5 Functions CLI and the Python workload (one-time):
+
+   ```bash
+   curl -sSL https://aka.ms/func-cli/install.sh | bash -s -- --prerelease
+   func setup --features python
+   ```
+
+2. Install Python dependencies:
 
    ```bash
    uv sync
    ```
 
-2. Create local settings and leave connector values blank:
+3. Create local settings and leave connector values blank:
 
    ```bash
    cp local.settings.json.example local.settings.json
    ```
 
-3. Terminal 1: start the Functions host:
+4. Terminal 1: start the Functions host:
 
    ```bash
-   uv run func start
+   uv run func run
    ```
 
-4. Terminal 2: trigger the timer immediately instead of waiting five minutes:
+5. Terminal 2: trigger the timer immediately instead of waiting five minutes:
 
    ```bash
    uv run python chat.py   # then pick 1 for inbox-triage
    ```
 
-5. Verify the offline action log:
+6. Verify the offline action log:
 
    ```bash
    tail -n 20 out/read-log.txt
@@ -104,7 +111,7 @@ Success looks like this:
 [2026-06-03T00:00:02+00:00] inbox-triage post_teams (offline) channel=<TEAMS_CHANNEL_ID> summary="🚨 VIP Alert: Customer renewal blocker needs decision today..."
 ```
 
-Also keep the `func start` terminal visible; the run summary shows what the agent read, how it classified each message, and which tool fallback it dispatched.
+Also keep the `func run` terminal visible; the run summary shows what the agent read, how it classified each message, and which tool fallback it dispatched.
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Code/SVG/ic_fluent_code_24_regular.svg" width="22" align="center"> Source Code
 
@@ -199,7 +206,7 @@ uv run python chat.py   # then pick 1
 ```
 
 **What you should see (offline / Python):**
-- In the `func start` terminal: lines like `inbox-triage: classified URGENT... as vip` and `dispatching Teams alert via tool fallback`.
+- In the `func run` terminal: lines like `inbox-triage: classified URGENT... as vip` and `dispatching Teams alert via tool fallback`.
 - In `out/read-log.txt`: `[<ts>] inbox-triage post_teams (offline) channel=<TEAMS_CHANNEL_ID> summary="🚨 VIP Alert..."`.
 - Verify with: `tail -n 20 out/read-log.txt`.
 
@@ -232,7 +239,7 @@ uv run python chat.py   # pick 1 for triage, then pick 2 for daily-briefing
 ```
 
 **What you should see (offline / Python):**
-- In the `func start` terminal: incident classification plus a briefing summary that names Checkout API.
+- In the `func run` terminal: incident classification plus a briefing summary that names Checkout API.
 - In `out/read-log.txt`: `post_teams (offline)` for the incident and `send_reply (offline)` for the daily briefing.
 - Verify with: `tail -n 20 out/read-log.txt` and open the newest `out/*.eml`.
 
@@ -265,7 +272,7 @@ uv run python chat.py   # then pick 1
 ```
 
 **What you should see (offline / Python):**
-- In the `func start` terminal: `action-required` classification and reply planning.
+- In the `func run` terminal: `action-required` classification and reply planning.
 - In `out/read-log.txt`: `[<ts>] inbox-triage send_reply (offline) to=priya.patel@contoso.example subject="..."`.
 - Verify with: `tail -n 20 out/read-log.txt` and open the newest matching `out/*.eml`.
 

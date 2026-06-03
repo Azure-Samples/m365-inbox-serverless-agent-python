@@ -19,10 +19,10 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="22" align="center"> Make it yours (private copy)
 
-Once you start editing rules, sample inbox data, or running against your real M365 tenant, you'll want a **private** copy. Public forks cannot be made private on GitHub. Use this repo as a template instead: click <kbd>Use this template</kbd> at the top of GitHub and choose **Private**, or with [GitHub CLI](https://cli.github.com/):
+Once you start editing rules, sample inbox data, or running against your real M365 tenant, you'll want a **private** copy. Public forks cannot be made private on GitHub. Use this repo as a template instead: click <kbd>Use this template</kbd> at the top of GitHub and choose **Private**, or with [GitHub CLI](https://cli.github.com/) (substitute your own owner and repo name for the angle-bracket placeholders):
 
 ```bash
-gh repo create my-org/my-inbox-agent \
+gh repo create <your-github-username>/<your-repo-name> \
   --template Azure-Samples/m365-inbox-agent-functions-python \
   --private --clone
 ```
@@ -41,7 +41,7 @@ Even in a private repo, never commit real secrets. This sample uses **managed id
 **Getting upstream updates.** Sync your private copy from this repo with a single GitHub CLI command, then pull locally:
 
 ```bash
-gh repo sync my-org/my-inbox-agent --source Azure-Samples/m365-inbox-agent-functions-python
+gh repo sync <your-github-username>/<your-repo-name> --source Azure-Samples/m365-inbox-agent-functions-python
 git pull
 ```
 

@@ -11,7 +11,6 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 - [uv](https://docs.astral.sh/uv/) (recommend Python 3.13+)
 - [Azure Functions CLI (v5 preview)](https://learn.microsoft.com/en-us/azure/azure-functions/functions-cli-develop-local?pivots=programming-language-python)
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for Azure deployment
-- Azurite or another `AzureWebJobsStorage` value for timer triggers
 - For production: an Azure subscription, a Microsoft Foundry project/model deployment, and permission to authorize Microsoft 365 connectors
 
 > **Note on `requirements.txt`:** kept in sync with `pyproject.toml` so Azure Functions Python deployment (Oryx build) works out of the box. Local development should use `uv` per the steps below.
@@ -345,7 +344,7 @@ azd down --purge
 | --- | --- |
 | Connector authorization fails | Reopen the Connector Namespace portal URL from deployment outputs, sign in with the mailbox/channel owner, and reauthorize Outlook and Teams. |
 | MCP endpoint missing | Run `azd env get-values` and confirm `OUTLOOK_MCP_ENDPOINT` and `TEAMS_MCP_ENDPOINT` are populated. If blank, rerun `azd up` and check Connector Namespace deployment logs. |
-| Timer is not firing | Confirm `AzureWebJobsStorage` is valid, Azurite is running for local development, and the Functions host shows the timer trigger loaded. See the Azure Functions timer trigger docs. |
+| Timer is not firing | Confirm the Functions host shows the timer trigger loaded at startup. The v5 CLI starts Azurite automatically; pass `--no-azurite` only if you intentionally point `AzureWebJobsStorage` elsewhere. |
 | Local run cannot reach Azure | Leave MCP endpoint variables blank and use option 1 in `chat.py`; the tools should read `sample-data/inbox.json` and log actions to `out/read-log.txt`. |
 | Manual trigger returns 404 | Confirm the Functions host is running and agent function names are `inbox-triage`, `daily-briefing`, and `weekly-rule-suggestions`. |
 

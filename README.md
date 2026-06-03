@@ -74,7 +74,7 @@ This path proves the agent loop works **without Azure resources or connector aut
 4. Terminal 2: trigger the timer immediately instead of waiting five minutes:
 
    ```bash
-   python chat.py   # then pick 1 for inbox-triage
+   uv run python chat.py   # then pick 1 for inbox-triage
    ```
 
 5. Verify the offline action log:
@@ -228,7 +228,7 @@ flowchart TD
 **Run:**
 
 ```bash
-python chat.py   # then pick 1
+uv run python chat.py   # then pick 1
 ```
 
 **What you should see (offline / Python):**
@@ -261,7 +261,7 @@ python chat.py   # then pick 1
 **Run:**
 
 ```bash
-python chat.py   # pick 1 for triage, then pick 2 for daily-briefing
+uv run python chat.py   # pick 1 for triage, then pick 2 for daily-briefing
 ```
 
 **What you should see (offline / Python):**
@@ -294,7 +294,7 @@ python chat.py   # pick 1 for triage, then pick 2 for daily-briefing
 **Run:**
 
 ```bash
-python chat.py   # then pick 1
+uv run python chat.py   # then pick 1
 ```
 
 **What you should see (offline / Python):**
@@ -363,7 +363,7 @@ Both repos define the **same three agents, same skills, same Bicep, same governa
 | Agent logic | LLM reasons from `.agent.md` + skills text, **plus** custom `tools/*.py` functions | Same, but **without** `tools/` |
 | `tools/` directory | ✅ ~5 Python tools (rule matching, triage actions, etc.) | ❌ none (by design) |
 | I/O path | MCP **or** local file fallback when MCP env vars unset | MCP only (Outlook & Teams managed connectors) |
-| Offline dev | `python chat.py` reads `sample-data/inbox/*.json`, writes `.eml`/`.md` to `out/` | Requires provisioned MCP |
+| Offline dev | `uv run python chat.py` reads `sample-data/inbox/*.json`, writes `.eml`/`.md` to `out/` | Requires provisioned MCP |
 | `function_app.py` | One line: `app = create_function_app()` (tools auto-discovered) | Identical one line |
 | Hand-written Python | ~1 line + ~300 across `tools/` | ~1 line |
 

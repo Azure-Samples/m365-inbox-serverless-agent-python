@@ -6,6 +6,22 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 
 > 📝 **Sibling sample (markdown-only):** [`Azure-Samples/m365-inbox-agent-functions-markdown`](https://github.com/Azure-Samples/m365-inbox-agent-functions-markdown) — the same agent expressed entirely in markdown (`.agent.md` + skills + MCP), with no custom Python tools. Start there if you want to learn the runtime's declarative model first; come back here to see how to extend it with code.
 
+## Python variant vs Markdown variant
+
+Both repos define the **same three agents, same skills, same Bicep, same governance**. The difference is where the logic lives.
+
+| | **This repo (Python)** | [Markdown sibling](https://github.com/Azure-Samples/m365-inbox-agent-functions-markdown) |
+|---|---|---|
+| Agent logic | LLM reasons from `.agent.md` + skills text, **plus** custom `tools/*.py` functions | Same, but **without** `tools/` |
+| `tools/` directory | ✅ ~5 Python tools (rule matching, triage actions, etc.) | ❌ none — by design |
+| I/O path | MCP **or** local file fallback when MCP env vars unset | MCP only (Outlook & Teams managed connectors) |
+| Offline dev | `python chat.py` reads `sample-data/inbox/*.json`, writes `.eml`/`.md` to `out/` | Requires provisioned MCP |
+| `function_app.py` | One line: `app = create_function_app()` (tools auto-discovered) | Identical one line |
+| Hand-written Python | ~1 line + ~300 across `tools/` | ~1 line |
+
+**Pick this repo if** you want a code escape hatch for offline hacking, deterministic rule matching, or learning the SDK.
+**Pick the markdown sibling if** you want to see the runtime's declarative promise — production-shaped M365 agent with effectively zero hand-written code.
+
 ## Architecture
 
 ```mermaid

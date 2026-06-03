@@ -37,7 +37,7 @@ Files most likely to contain personal/tenant information:
 - `local.settings.json`, `.env` — secrets and endpoints (**already gitignored**)
 - `infra/main.parameters.json` — subscription/tenant-specific values if you customize
 
-Even in a private repo, never commit real secrets. Use Key Vault references or `azd env set` for production values.
+Even in a private repo, never commit real secrets. This sample uses **managed identity** for Foundry and **Entra-authorized connectors** for Microsoft 365, so there are no app-managed credentials to leak — for any custom integrations you add, keep that pattern (managed identity → role assignment) rather than pasting keys.
 
 **Getting upstream updates** — your private copy is independent, so add this repo as an `upstream` remote once, then pull when you want fixes:
 

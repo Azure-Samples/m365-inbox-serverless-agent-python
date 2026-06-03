@@ -1,4 +1,4 @@
-azurefunctions-agents-runtime
+azurefunctions-agents-runtime>=0.1.0b1
 azure-functions
 azure-identity
 pydantic

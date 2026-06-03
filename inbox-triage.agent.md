@@ -6,18 +6,6 @@ trigger:
   args:
     schedule: "0 */5 * * * *"
 mcp: true
-skills:
-  - skills/vip-rules.md
-  - skills/inbox-poll.md
-  - skills/inbox-read.md
-  - skills/email-reply.md
-  - skills/teams-post.md
-tools:
-  - list_inbox
-  - match_rule
-  - send_reply
-  - post_teams
-  - mark_read
 metadata:
   scenario: "inbox-triage"
   emoji: "📨"

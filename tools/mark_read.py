@@ -6,10 +6,10 @@ fallback appends message ids to `out/read-log.txt` for offline verification.
 
 from __future__ import annotations
 
-from azure_functions_agents.tools import tool
+from azure_functions_agents import tool
 from pydantic import BaseModel, Field
 
-from .action_log import append_action
+from tools.action_log import append_action
 
 
 class MarkReadParams(BaseModel):

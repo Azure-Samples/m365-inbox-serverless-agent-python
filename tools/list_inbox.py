@@ -13,10 +13,10 @@ import os
 from pathlib import Path
 from typing import Any
 
-from azure_functions_agents.tools import tool
+from azure_functions_agents import tool
 from pydantic import BaseModel, Field
 
-from .action_log import append_action
+from tools.action_log import append_action
 
 
 class ListInboxParams(BaseModel):

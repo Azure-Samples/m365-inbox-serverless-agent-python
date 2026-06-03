@@ -16,6 +16,29 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 
 > **Note on `requirements.txt`:** kept in sync with `pyproject.toml` so Azure Functions Python deployment (Oryx build) works out of the box. Local development should use `uv` per the steps below.
 
+## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="22" align="center"> Make it yours (private copy)
+
+Once you start editing rules, sample inbox data, or running against your real M365 tenant, you'll want a **private** copy — public forks cannot be made private on GitHub.
+
+Two safe ways to do that:
+
+1. **Use this template** (recommended) — click <kbd>Use this template</kbd> at the top of this repo and choose **Private**. This creates an independent repo with no fork relationship, so accidental PRs back to `Azure-Samples` are not possible.
+2. **Clone, then push to a new private repo:**
+   ```bash
+   git clone https://github.com/Azure-Samples/m365-inbox-agent-functions-python.git my-inbox-agent
+   cd my-inbox-agent
+   gh repo create my-org/my-inbox-agent --private --source=. --remote=origin --push
+   ```
+
+Files most likely to contain personal/tenant information:
+
+- `skills/vip-rules.md`, `skills/triage-rules.md` — your VIPs and triage logic
+- `sample-data/inbox/*.json` — any real mail you paste in for testing
+- `local.settings.json`, `.env` — secrets and endpoints (**already gitignored**)
+- `infra/main.parameters.json` — subscription/tenant-specific values if you customize
+
+Even in a private repo, never commit real secrets. Use Key Vault references or `azd env set` for production values.
+
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Rocket/SVG/ic_fluent_rocket_24_regular.svg" width="22" align="center"> Quickstart
 
 This path proves the agent loop works **without Azure resources or connector authorization**. With MCP endpoints blank, the Python fallback tools read mock mail from `sample-data/inbox/*.json`, classify it, and write the local actions they would have taken to `out/read-log.txt`. You can see reasoning in the `func run` terminal and action records in the log. No real email is sent and no Teams post is made.

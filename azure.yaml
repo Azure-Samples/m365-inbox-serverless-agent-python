@@ -20,3 +20,14 @@ hooks:
       run: ./infra/scripts/setuplocalenvironment.ps1
       interactive: true
       continueOnError: false
+  postdeploy:
+    posix:
+      shell: sh
+      run: ./infra/scripts/configure-trigger.sh
+      interactive: true
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/configure-trigger.ps1
+      interactive: true
+      continueOnError: false

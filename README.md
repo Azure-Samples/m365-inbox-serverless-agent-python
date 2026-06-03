@@ -14,6 +14,11 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 - [Azure Functions CLI (v5 preview)](https://learn.microsoft.com/en-us/azure/azure-functions/functions-cli-develop-local?pivots=programming-language-python)
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for Azure deployment
 - For production: an Azure subscription, a Microsoft Foundry project/model deployment, and permission to authorize Microsoft 365 connectors
+- The **`connector-namespace` Azure CLI extension** (used by the postdeploy hook to register the Outlook trigger). Install the latest wheel from [Azure/Connectors releases](https://github.com/Azure/Connectors/releases):
+
+  ```bash
+  az extension add --source https://github.com/Azure/Connectors/releases/download/<latest>/connector_namespace-<latest>-py3-none-any.whl
+  ```
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="22" align="center"> Make it yours (private copy)
 
@@ -169,14 +174,21 @@ infra/                            Azure resources created by azd.
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Key/SVG/ic_fluent_key_24_regular.svg" width="22" align="center"> Authorize Connectors
 
-Connector resources are deployed before they can access your mailbox or Teams channel. Complete this one-time step after `azd up`:
+The sample is **event-driven**: the `inbox-triage` agent runs on the Office 365 `OnNewEmailV3` connector trigger — there is no polling. `daily-briefing` and `weekly-rule-suggestions` stay on timers and read the inbox via the same Outlook MCP connector.
 
-1. Open the Connector Namespace portal URL printed by deployment outputs, or build it from the deployed connector gateway name.
-2. Authorize the Office 365 Outlook connection with the account whose inbox the sample should triage.
-3. Authorize the Teams connection and confirm `TEAMS_TEAM_ID` and `TEAMS_CHANNEL_ID` point to the intended channel.
-4. Restart or rerun the agents after authorization. Until this is complete, local fallback works, but deployed MCP calls fail with authorization errors.
+`azd up` runs a `postdeploy` hook (`infra/scripts/configure-trigger.sh` / `.ps1`) that:
 
-Use the Connector Namespace portal URL for authorization, not just the generic Azure resource overview page.
+1. Reads the `connector_extension` system key from the deployed function app.
+2. Calls `az connector-namespace trigger create` to subscribe the Outlook connection to `OnNewEmailV3` and point the callback URL at the `inbox_triage` function.
+3. Opens a browser tab for **OAuth consent** on the Outlook (and Teams, if enabled) connection, then polls until each connection reports `Connected`.
+
+If the hook prints a missing-extension error, install the prereq from [Prerequisites](#prerequisites) and re-run:
+
+```bash
+azd hooks run postdeploy
+```
+
+Local dev note: the connector trigger only fires against the deployed function app (it needs a public callback URL). Locally, invoke an agent over HTTP from `chat.py`; the read paths (`GetEmailsV3`, `SendEmailV2`, Teams `PostMessageToConversation`) still work as long as your developer identity has the access policy on the MCP connection (`deployerPrincipalId` is wired by the Bicep).
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Building/SVG/ic_fluent_building_24_regular.svg" width="22" align="center"> Architecture
 
@@ -185,9 +197,9 @@ flowchart TD
     User["Developer or operator"] --> Func["Azure Function App\nServerless Agents Runtime"]
 
     subgraph FunctionApp["Function App"]
-        InboxAgent["Agent: inbox-triage\nTimer-triggered triage"]
-        BriefingAgent["Agent: daily-briefing\nDaily digest"]
-        RulesAgent["Agent: weekly-rule-suggestions\nHuman-in-the-loop tuning"]
+        InboxAgent["Agent: inbox-triage\nOnNewEmailV3 connector trigger"]
+        BriefingAgent["Agent: daily-briefing\nDaily digest (timer)"]
+        RulesAgent["Agent: weekly-rule-suggestions\nHuman-in-the-loop tuning (timer)"]
     end
 
     Func --> FunctionApp

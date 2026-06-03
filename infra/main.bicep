@@ -379,3 +379,6 @@ output TO_EMAIL string = toEmail
 output OUTLOOK_MCP_ENDPOINT string = enableConnectors ? connectors!.outputs.outlookMcpEndpoint : ''
 output TEAMS_MCP_ENDPOINT string = effectiveTeamsConnectorEnabled ? connectors!.outputs.teamsMcpEndpoint : ''
 output CONNECTOR_GATEWAY_NAME string = enableConnectors ? connectors!.outputs.connectorGatewayName : ''
+output OUTLOOK_CONNECTION_NAME string = enableConnectors ? connectors!.outputs.outlookConnectionName : ''
+output TEAMS_CONNECTION_NAME string = effectiveTeamsConnectorEnabled ? connectors!.outputs.teamsConnectionName : ''
+output CONNECTOR_GATEWAY_LOCATION string = connectorGatewayLocation

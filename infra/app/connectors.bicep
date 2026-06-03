@@ -105,7 +105,7 @@ resource outlookMcpServerConfig 'Microsoft.Web/connectorGateways/mcpserverconfig
         name: 'office365'
         connectionName: outlookConnection.name
         displayName: 'Office 365 Outlook'
-        description: 'Send triage summaries and follow-ups from Outlook.'
+        description: 'Read, mark read, and send mail for the inbox agents.'
         operations: [
           {
             name: 'SendEmailV2'
@@ -136,6 +136,72 @@ resource outlookMcpServerConfig 'Microsoft.Web/connectorGateways/mcpserverconfig
                       required: true
                     }
                   }
+                }
+              }
+            ]
+          }
+          {
+            name: 'GetEmailsV3'
+            displayName: 'Get emails'
+            description: 'Reads recent emails from a mailbox folder.'
+            userParameters: []
+            agentParameters: [
+              {
+                name: 'folderPath'
+                schema: {
+                  type: 'string'
+                  description: 'Mail folder to retrieve emails from. Defaults to Inbox.'
+                }
+              }
+              {
+                name: 'top'
+                schema: {
+                  type: 'integer'
+                  description: 'Number of emails to retrieve (default 10, max 1000).'
+                }
+              }
+              {
+                name: 'fetchOnlyUnread'
+                schema: {
+                  type: 'boolean'
+                  description: 'Retrieve only unread emails.'
+                }
+              }
+              {
+                name: 'subjectFilter'
+                schema: {
+                  type: 'string'
+                  description: 'Optional substring to match within the subject line.'
+                }
+              }
+              {
+                name: 'from'
+                schema: {
+                  type: 'string'
+                  description: 'Sender email addresses separated by semicolons.'
+                }
+              }
+              {
+                name: 'importance'
+                schema: {
+                  type: 'string'
+                  description: 'Importance filter: Any, High, Normal, or Low.'
+                }
+              }
+            ]
+          }
+          {
+            name: 'MarkAsRead_V3'
+            displayName: 'Mark as read'
+            description: 'Marks a message as read or unread.'
+            userParameters: []
+            agentParameters: [
+              {
+                name: 'messageId'
+                schema: {
+                  type: 'string'
+                  description: 'Id of the email to be marked.'
+                  required: true
                 }
               }
             ]
@@ -205,6 +271,8 @@ resource teamsMcpServerConfig 'Microsoft.Web/connectorGateways/mcpserverconfigs@
 }
 
 output connectorGatewayName string = connectorGateway.name
+output outlookConnectionName string = outlookConnection.name
+output teamsConnectionName string = enableTeamsConnector ? teamsConnection.name : ''
 output outlookConnectionId string = outlookConnection.id
 output teamsConnectionId string = enableTeamsConnector ? teamsConnection.id : ''
 output outlookMcpEndpoint string = outlookMcpServerConfig.properties.mcpEndpointUrl

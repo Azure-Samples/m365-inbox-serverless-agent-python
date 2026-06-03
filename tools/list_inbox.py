@@ -16,6 +16,8 @@ from typing import Any
 from azure_functions_agents.tools import tool
 from pydantic import BaseModel, Field
 
+from .action_log import append_action
+
 
 class ListInboxParams(BaseModel):
     since_minutes: int = Field(default=5, ge=1, description="Lookback window in minutes.")
@@ -44,4 +46,5 @@ async def list_inbox(params: ListInboxParams) -> list[dict[str, Any]]:
             messages.append(data)
         if len(messages) >= min(params.top, 5):
             break
+    append_action(f"inbox-triage list_inbox returned {len(messages)} messages from sample-data/inbox")
     return messages

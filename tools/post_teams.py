@@ -14,6 +14,8 @@ from pathlib import Path
 from azure_functions_agents.tools import tool
 from pydantic import BaseModel, Field
 
+from .action_log import append_action
+
 
 class PostTeamsParams(BaseModel):
     team_id: str = Field(description="Teams team id or environment placeholder.")
@@ -39,4 +41,6 @@ async def post_teams(params: PostTeamsParams) -> str:
         f"{body}\n",
         encoding="utf-8",
     )
+    summary = re.sub(r"\s+", " ", body).strip()[:120]
+    append_action(f'inbox-triage post_teams (offline) channel={params.channel_id} summary="{summary}"')
     return f"ok: wrote {path.relative_to(Path.cwd())}"

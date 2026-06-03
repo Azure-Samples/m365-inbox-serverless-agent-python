@@ -22,10 +22,15 @@ Once you start editing rules, sample inbox data, or running against your real M3
 
 Two safe ways to do that:
 
-1. **Use this template** (recommended) — click <kbd>Use this template</kbd> at the top of this repo and choose **Private**. This creates an independent repo with no fork relationship, so accidental PRs back to `Azure-Samples` are not possible.
+1. **Use this template** (recommended) — click <kbd>Use this template</kbd> at the top of this repo and choose **Private**. This creates an independent repo with no fork relationship, so accidental PRs back to `Azure-Samples` are not possible. With [GitHub CLI](https://cli.github.com/):
+   ```bash
+   gh repo create my-org/my-inbox-agent \
+     --template Azure-Samples/m365-inbox-agent-functions-python \
+     --private --clone
+   ```
 2. **Clone, then push to a new private repo:**
    ```bash
-   git clone https://github.com/Azure-Samples/m365-inbox-agent-functions-python.git my-inbox-agent
+   gh repo clone Azure-Samples/m365-inbox-agent-functions-python my-inbox-agent
    cd my-inbox-agent
    gh repo create my-org/my-inbox-agent --private --source=. --remote=origin --push
    ```
@@ -39,12 +44,11 @@ Files most likely to contain personal/tenant information:
 
 Even in a private repo, never commit real secrets. This sample uses **managed identity** for Foundry and **Entra-authorized connectors** for Microsoft 365, so there are no app-managed credentials to leak — for any custom integrations you add, keep that pattern (managed identity → role assignment) rather than pasting keys.
 
-**Getting upstream updates** — your private copy is independent, so add this repo as an `upstream` remote once, then pull when you want fixes:
+**Getting upstream updates** — sync your private copy from this repo with a single GitHub CLI command, then pull locally:
 
 ```bash
-git remote add upstream https://github.com/Azure-Samples/m365-inbox-agent-functions-python.git
-git fetch upstream
-git merge upstream/main          # or: git rebase upstream/main
+gh repo sync my-org/my-inbox-agent --source Azure-Samples/m365-inbox-agent-functions-python
+git pull
 ```
 
 The Functions Serverless Agents Runtime is in preview, so expect occasional fixes worth pulling in. Your edits to `skills/`, `sample-data/`, and `infra/main.parameters.json` will typically merge cleanly.

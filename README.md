@@ -57,15 +57,18 @@ The Functions Serverless Agents Runtime is in preview, so expect occasional fixe
 
 This path proves the agent loop works **without Azure resources or connector authorization**. With MCP endpoints blank, the Python fallback tools read mock mail from `sample-data/inbox/*.json`, classify it, and write the local actions they would have taken to `out/read-log.txt`. You can see reasoning in the `func start` terminal and action records in the log. No real email is sent and no Teams post is made.
 
-1. Install **Azure Functions Core Tools v4** (one-time). The serverless agents runtime needs the **Preview** extension bundle (`Microsoft.Azure.Functions.ExtensionBundle.Preview`), and the v5 CLI (`func 5.0.0-preview.x`) does not yet ship a workload package for it — v4 reads the Preview bundle directly from the CDN.
+1. Install **Azure Functions Core Tools v4 (≥ 4.12.0)** and **Azurite** (one-time). The serverless agents runtime needs the **Preview** extension bundle (`Microsoft.Azure.Functions.ExtensionBundle.Preview`) plus a **Python 3.13** worker. The v5 CLI (`func 5.0.0-preview.x`) does not yet ship a workload package for the Preview bundle — see [issue #5309](https://github.com/Azure/azure-functions-core-tools/issues/5309) — and Core Tools < 4.12.0 (e.g. brew 4.6.0) only ships a Python 3.12 worker, which causes the worker to exit with SIGTERM 143 against this runtime. The Functions host also needs local blob storage during startup; **Azurite** provides it.
 
    macOS (Homebrew):
 
    ```bash
-   brew tap azure/functions && brew install azure-functions-core-tools@4
+   brew tap azure/functions
+   brew install azure-functions-core-tools@4   # if fresh
+   brew upgrade azure-functions-core-tools@4   # if already installed; must be >= 4.12.0
+   npm i -g azurite                            # local blob/queue/table emulator
    ```
 
-   Linux / Windows / other: see [Install Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools). Tracking issue for v5 + Preview bundle: <https://github.com/Azure/azure-functions-core-tools/issues>.
+   Linux / Windows / other: see [Install Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools) and [Install Azurite](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite). Before running `func start`, start Azurite in another terminal: `azurite --silent --location /tmp/azurite`.
 
 2. Provision Foundry (no app deploy) so you have an endpoint to point at locally:
 

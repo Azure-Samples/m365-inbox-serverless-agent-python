@@ -6,52 +6,6 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 
 > 📝 Prefer pure markdown with no custom Python? See the [markdown-only sibling](https://github.com/Azure-Samples/m365-inbox-agent-functions-markdown). Full comparison at [the bottom](#-python-variant-vs-markdown-variant).
 
-## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Building/SVG/ic_fluent_building_24_regular.svg" width="22" align="center"> Architecture
-
-```mermaid
-flowchart TD
-    User["Developer or operator"] --> Func["Azure Function App\nServerless Agents Runtime"]
-
-    subgraph FunctionApp["Function App"]
-        InboxAgent["Agent: inbox-triage\nTimer-triggered triage"]
-        BriefingAgent["Agent: daily-briefing\nDaily digest"]
-        RulesAgent["Agent: weekly-rule-suggestions\nHuman-in-the-loop tuning"]
-    end
-
-    Func --> FunctionApp
-    FunctionApp --> MCP["MCP layer\nConnector Namespace managed servers"]
-
-    subgraph M365["Microsoft 365 services"]
-        Outlook["Outlook\nInbox, mail send"]
-        Calendar["Calendar\nAvailability context"]
-        Teams["Teams Channel\nUrgent alerts"]
-    end
-
-    MCP --> Outlook
-    MCP --> Calendar
-    MCP --> Teams
-
-    Storage["Azure Storage\nTimer leases and state"] --> Func
-    Func --> AppInsights["Application Insights\nLogs and traces"]
-    Func --> Storage
-
-    InboxAgent --> MCP
-    BriefingAgent --> MCP
-    RulesAgent --> MCP
-    InboxAgent --> AppInsights
-    BriefingAgent --> AppInsights
-    RulesAgent --> AppInsights
-```
-
-## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Flowchart/SVG/ic_fluent_flowchart_24_regular.svg" width="22" align="center"> How the building blocks work
-
-| Building block | Tool that implements it | Skill that explains it | Agent that uses it |
-| --- | --- | --- | --- |
-| Trigger on inbox | Timer trigger declared on `inbox-triage.agent.md`; local manual runs use `POST /admin/functions/inbox-triage` | `skills/vip-rules.md` explains what counts as important inbox work | `inbox-triage` |
-| Read inbox | `tools/list_inbox.py` reads Microsoft Graph through Outlook MCP when configured, or `sample-data/inbox.json` offline | `skills/vip-rules.md` describes VIP, incident, FYI, and action-required handling | `inbox-triage`, `daily-briefing`, `weekly-rule-suggestions` |
-| Send email | Outlook MCP `sendMail` through the Connector Namespace; local fallback logs the draft action | `skills/vip-rules.md` explains when to draft or send a reply | `inbox-triage` |
-| Post to Teams | Teams MCP channel-post tool through the Connector Namespace; local fallback logs the Teams alert | `skills/vip-rules.md` explains escalation criteria | `inbox-triage`, `daily-briefing` |
-
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg" width="22" align="center"> Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) (recommend Python 3.13+)
@@ -178,6 +132,52 @@ Connector resources are deployed before they can access your mailbox or Teams ch
 4. Restart or rerun the agents after authorization. Until this is complete, local fallback works, but deployed MCP calls fail with authorization errors.
 
 Use the Connector Namespace portal URL for authorization, not just the generic Azure resource overview page.
+
+## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Building/SVG/ic_fluent_building_24_regular.svg" width="22" align="center"> Architecture
+
+```mermaid
+flowchart TD
+    User["Developer or operator"] --> Func["Azure Function App\nServerless Agents Runtime"]
+
+    subgraph FunctionApp["Function App"]
+        InboxAgent["Agent: inbox-triage\nTimer-triggered triage"]
+        BriefingAgent["Agent: daily-briefing\nDaily digest"]
+        RulesAgent["Agent: weekly-rule-suggestions\nHuman-in-the-loop tuning"]
+    end
+
+    Func --> FunctionApp
+    FunctionApp --> MCP["MCP layer\nConnector Namespace managed servers"]
+
+    subgraph M365["Microsoft 365 services"]
+        Outlook["Outlook\nInbox, mail send"]
+        Calendar["Calendar\nAvailability context"]
+        Teams["Teams Channel\nUrgent alerts"]
+    end
+
+    MCP --> Outlook
+    MCP --> Calendar
+    MCP --> Teams
+
+    Storage["Azure Storage\nTimer leases and state"] --> Func
+    Func --> AppInsights["Application Insights\nLogs and traces"]
+    Func --> Storage
+
+    InboxAgent --> MCP
+    BriefingAgent --> MCP
+    RulesAgent --> MCP
+    InboxAgent --> AppInsights
+    BriefingAgent --> AppInsights
+    RulesAgent --> AppInsights
+```
+
+## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Flowchart/SVG/ic_fluent_flowchart_24_regular.svg" width="22" align="center"> How the building blocks work
+
+| Building block | Tool that implements it | Skill that explains it | Agent that uses it |
+| --- | --- | --- | --- |
+| Trigger on inbox | Timer trigger declared on `inbox-triage.agent.md`; local manual runs use `POST /admin/functions/inbox-triage` | `skills/vip-rules.md` explains what counts as important inbox work | `inbox-triage` |
+| Read inbox | `tools/list_inbox.py` reads Microsoft Graph through Outlook MCP when configured, or `sample-data/inbox.json` offline | `skills/vip-rules.md` describes VIP, incident, FYI, and action-required handling | `inbox-triage`, `daily-briefing`, `weekly-rule-suggestions` |
+| Send email | Outlook MCP `sendMail` through the Connector Namespace; local fallback logs the draft action | `skills/vip-rules.md` explains when to draft or send a reply | `inbox-triage` |
+| Post to Teams | Teams MCP channel-post tool through the Connector Namespace; local fallback logs the Teams alert | `skills/vip-rules.md` explains escalation criteria | `inbox-triage`, `daily-briefing` |
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Beaker/SVG/ic_fluent_beaker_24_regular.svg" width="22" align="center"> Scenarios
 

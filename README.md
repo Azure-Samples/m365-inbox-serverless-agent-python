@@ -39,6 +39,16 @@ Files most likely to contain personal/tenant information:
 
 Even in a private repo, never commit real secrets. Use Key Vault references or `azd env set` for production values.
 
+**Getting upstream updates** — your private copy is independent, so add this repo as an `upstream` remote once, then pull when you want fixes:
+
+```bash
+git remote add upstream https://github.com/Azure-Samples/m365-inbox-agent-functions-python.git
+git fetch upstream
+git merge upstream/main          # or: git rebase upstream/main
+```
+
+The Functions Serverless Agents Runtime is in preview, so expect occasional fixes worth pulling in. Your edits to `skills/`, `sample-data/`, and `infra/main.parameters.json` will typically merge cleanly.
+
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Rocket/SVG/ic_fluent_rocket_24_regular.svg" width="22" align="center"> Quickstart
 
 This path proves the agent loop works **without Azure resources or connector authorization**. With MCP endpoints blank, the Python fallback tools read mock mail from `sample-data/inbox/*.json`, classify it, and write the local actions they would have taken to `out/read-log.txt`. You can see reasoning in the `func run` terminal and action records in the log. No real email is sent and no Teams post is made.

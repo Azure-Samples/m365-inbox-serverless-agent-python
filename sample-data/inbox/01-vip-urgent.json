@@ -1,0 +1,24 @@
+{
+  "id": "AAMkAGI001VIPUrgentExample",
+  "subject": "URGENT: Customer renewal blocker needs decision today",
+  "from": {
+    "emailAddress": {
+      "name": "Morgan Lee",
+      "address": "vip-name@example.com"
+    }
+  },
+  "toRecipients": [
+    {
+      "emailAddress": {
+        "name": "Inbox Agent",
+        "address": "inbox.agent@example.com"
+      }
+    }
+  ],
+  "receivedDateTime": "2026-06-02T15:30:00Z",
+  "isRead": false,
+  "body": {
+    "contentType": "html",
+    "content": "<p>Hi team, the Contoso Example renewal is blocked on the discount approval. We need a decision today before 5 PM UTC or the customer will pause procurement.</p><p>Please alert the account team in Teams and confirm who owns the approval.</p>"
+  }
+}

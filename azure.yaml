@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: m365-inbox-agent-functions-python
+metadata:
+  template: m365-inbox-agent-functions-python@1.0.0
+services:
+  api:
+    project: ./
+    host: function
+    language: python
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: ./infra/scripts/setuplocalenvironment.sh
+      interactive: true
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/setuplocalenvironment.ps1
+      interactive: true
+      continueOnError: false

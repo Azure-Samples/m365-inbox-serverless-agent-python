@@ -1,0 +1,18 @@
+{
+  "servers": {
+    "outlook": {
+      "type": "http",
+      "url": "$OUTLOOK_MCP_ENDPOINT",
+      "auth": {
+        "scope": "https://apihub.azure.com/.default"
+      }
+    },
+    "teams": {
+      "type": "http",
+      "url": "$TEAMS_MCP_ENDPOINT",
+      "auth": {
+        "scope": "https://apihub.azure.com/.default"
+      }
+    }
+  }
+}

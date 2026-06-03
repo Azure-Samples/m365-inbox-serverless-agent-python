@@ -68,6 +68,8 @@ This path proves the agent loop works **without Azure resources or connector aut
 
 3. Hydrate `local.settings.json` from azd outputs. Auth uses your `az login` identity (no keys):
 
+   Bash (macOS / Linux / WSL):
+
    ```bash
    az login                                # one-time
    ./scripts/hydrate-local-settings.sh

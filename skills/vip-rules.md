@@ -13,7 +13,7 @@ These rules are checked before ordinary classification. A match does not remove 
 
 ### Rule 1: VIP stakeholder -> Teams alert
 
-- **Trigger:** The string `<vip-name>@example.com` appears in sender, subject, or body.
+- **Trigger:** The string `vip-name@example.com` appears in sender, subject, or body.
 - **Action:** Post a Teams alert first.
 - **Format:** Start with `🚨 VIP Alert`, include subject, sender, concise summary, and requested next action.
 - **Priority:** First action, then continue normal processing.
@@ -21,8 +21,8 @@ These rules are checked before ordinary classification. A match does not remove 
 
 ### Rule 2: Product incidents -> Conditional escalation
 
-- **Trigger:** Sender is `incidents@example.com`.
-- **Condition A:** Subject or body mentions `your-product`, `customer impact`, `sev`, `outage`, or `regression`.
+- **Trigger:** Sender is `incident.bot@contoso.example`.
+- **Condition A:** Subject or body mentions `p1`, `checkout api`, `customer impact`, `sev`, `outage`, `impact`, or `regression`.
 - **Action A:** Classify as `incident` and post a Teams alert first.
 - **Condition B:** No product-impact wording is present.
 - **Action B:** Skip autonomous action and summarize as filtered incident noise.

@@ -15,6 +15,8 @@ from pathlib import Path
 from azure_functions_agents.tools import tool
 from pydantic import BaseModel, Field
 
+from .action_log import append_action
+
 
 class SendReplyParams(BaseModel):
     to: str = Field(description="Recipient email address.")
@@ -45,4 +47,5 @@ async def send_reply(params: SendReplyParams) -> str:
         f"{params.body_html}\n",
         encoding="utf-8",
     )
+    append_action(f'inbox-triage send_reply (offline) to={params.to} subject="{params.subject}"')
     return f"ok: wrote {path.relative_to(Path.cwd())}"

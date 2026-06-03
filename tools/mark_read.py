@@ -6,11 +6,10 @@ fallback appends message ids to `out/read-log.txt` for offline verification.
 
 from __future__ import annotations
 
-import datetime as dt
-from pathlib import Path
-
 from azure_functions_agents.tools import tool
 from pydantic import BaseModel, Field
+
+from .action_log import append_action
 
 
 class MarkReadParams(BaseModel):
@@ -20,9 +19,5 @@ class MarkReadParams(BaseModel):
 @tool
 async def mark_read(params: MarkReadParams) -> str:
     """Mark a message as read. MCP preferred; fallback logs the message id."""
-    out_dir = Path(__file__).resolve().parent.parent / "out"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / "read-log.txt"
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(f"{dt.datetime.now(dt.UTC).isoformat()} {params.message_id}\n")
+    append_action(f"inbox-triage mark_read (offline) message_id={params.message_id}")
     return f"ok: logged {params.message_id}"

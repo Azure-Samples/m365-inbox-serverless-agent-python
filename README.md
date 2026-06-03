@@ -95,10 +95,10 @@ This path proves the agent loop works **without Azure resources or connector aut
 
    > `pwsh -File <path>` runs the script without triggering Windows ExecutionPolicy — no `Set-ExecutionPolicy` needed.
 
-3. Terminal 1: start the Functions host:
+3. Terminal 1: start the Functions host (uv prepends the 3.13 venv to PATH so Core Tools picks the 3.13 worker and sees `agent_functions`):
 
    ```bash
-   func start
+   uv run func start
    ```
 
 4. Terminal 2: trigger the timer immediately instead of waiting five minutes:

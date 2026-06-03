@@ -54,4 +54,4 @@ $settings = [ordered]@{
 
 $settings | ConvertTo-Json -Depth 5 | Set-Content -Path local.settings.json -Encoding UTF8
 Write-Host "Wrote local.settings.json -- provider=foundry, model=$($envVars['FOUNDRY_MODEL'])"
-Write-Host "Run 'func5 run' to start the host."
+Write-Host "Run 'func start' to start the host."

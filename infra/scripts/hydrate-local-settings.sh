@@ -42,4 +42,4 @@ EOF
 
 chmod 600 local.settings.json
 echo "Wrote local.settings.json — provider=foundry, model=${FOUNDRY_MODEL}"
-echo "Run 'func5 run' to start the host."
+echo "Run 'func start' to start the host."

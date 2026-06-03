@@ -2,9 +2,8 @@
 name: Inbox Triage Agent
 description: Triggered when a new email arrives in Outlook; applies VIP rules and routes/replies as needed.
 trigger:
-  type: generic_trigger
-  args:
-    type: connectorTrigger
+  type: connector_trigger
+  args: {}
 timeout: 1800
 mcp: true
 metadata:

@@ -77,14 +77,14 @@ This path proves the agent loop works **without Azure resources or connector aut
 
    ```bash
    az login                                # one-time
-   ./scripts/hydrate-local-settings.sh
+   ./infra/scripts/hydrate-local-settings.sh
    ```
 
    Windows PowerShell:
 
    ```powershell
    az login                                # one-time
-   pwsh -File ./scripts/hydrate-local-settings.ps1
+   pwsh -File ./infra/scripts/hydrate-local-settings.ps1
    ```
 
    > `pwsh -File <path>` runs the script without triggering Windows ExecutionPolicy — no `Set-ExecutionPolicy` needed.
@@ -349,7 +349,7 @@ The `weekly-rule-suggestions` agent reviews recent decisions and suggests small 
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Cloud/SVG/ic_fluent_cloud_24_regular.svg" width="22" align="center"> Choosing a model provider
 
-The agents runtime auto-selects a provider from environment variables. This sample defaults to **Microsoft Foundry with managed identity** — `azd provision` creates the AI Services account + model deployment, and `scripts/hydrate-local-settings.sh` copies the outputs into `local.settings.json`. No API keys.
+The agents runtime auto-selects a provider from environment variables. This sample defaults to **Microsoft Foundry with managed identity** — `azd provision` creates the AI Services account + model deployment, and `infra/scripts/hydrate-local-settings.sh` copies the outputs into `local.settings.json`. No API keys.
 
 **Local + production (default) — Foundry + Entra ID:**
 

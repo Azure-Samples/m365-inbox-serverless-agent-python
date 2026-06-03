@@ -1,6 +1,5 @@
 """Shared offline action logging helpers."""
 
-from __future__ import annotations
 
 import datetime as dt
 from pathlib import Path

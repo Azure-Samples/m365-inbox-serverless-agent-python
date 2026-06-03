@@ -5,7 +5,6 @@ fallback writes an RFC-822-like `.eml` file to `out/` so local runs are
 inspectable without Microsoft 365 or Foundry credentials.
 """
 
-from __future__ import annotations
 
 import datetime as dt
 import re

@@ -226,12 +226,8 @@ module api './app/api.bicep' = {
     appSettings: {
       AZURE_FUNCTIONS_AGENTS_PROVIDER: 'foundry'
       AZURE_CLIENT_ID: apiUserAssignedIdentity.outputs.clientId
-      AZURE_AI_PROJECT_ENDPOINT: aiProject.outputs.projectEndpoint
       FOUNDRY_PROJECT_ENDPOINT: aiProject.outputs.projectEndpoint
-      MODEL_DEPLOYMENT_NAME: modelDeploymentName
-      AZURE_AI_MODEL_DEPLOYMENT_NAME: modelDeploymentName
-      AZURE_OPENAI_ENDPOINT: 'https://${aiDependencies.outputs.aiServicesName}.openai.azure.com/'
-      AZURE_OPENAI_DEPLOYMENT_NAME: modelDeploymentName
+      FOUNDRY_MODEL: modelDeploymentName
       TO_EMAIL: toEmail
       OUTLOOK_MCP_ENDPOINT: enableConnectors ? connectors!.outputs.outlookMcpEndpoint : ''
       TEAMS_MCP_ENDPOINT: effectiveTeamsConnectorEnabled ? connectors!.outputs.teamsMcpEndpoint : ''
@@ -371,9 +367,7 @@ output STORAGE_ACCOUNT_NAME string = storage.outputs.name
 output AI_SERVICES_NAME string = aiDependencies.outputs.aiServicesName
 output PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
 output FOUNDRY_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
-output MODEL_DEPLOYMENT_NAME string = modelDeploymentName
-output AZURE_OPENAI_ENDPOINT string = 'https://${aiDependencies.outputs.aiServicesName}.openai.azure.com/'
-output AZURE_OPENAI_DEPLOYMENT_NAME string = modelDeploymentName
+output FOUNDRY_MODEL string = modelDeploymentName
 output AZURE_CLIENT_ID string = apiUserAssignedIdentity.outputs.clientId
 output STORAGE_CONNECTION__queueServiceUri string = 'https://${storage.outputs.name}.queue.${environment().suffixes.storage}'
 output TO_EMAIL string = toEmail

@@ -4,7 +4,6 @@ Production agents should prefer the Outlook MCP message update action. This
 fallback appends message ids to `out/read-log.txt` for offline verification.
 """
 
-from __future__ import annotations
 
 from azure_functions_agents import tool
 from pydantic import BaseModel, Field

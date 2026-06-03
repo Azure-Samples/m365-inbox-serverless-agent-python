@@ -11,9 +11,9 @@ FUNCTION_KEY = os.environ.get("FUNCTION_KEY", "")
 LOG_PATH = Path(os.environ.get("ACTION_LOG_PATH", "out/read-log.txt"))
 
 AGENTS = {
-    "1": ("inbox-triage", "Trigger inbox-triage now (with sample-data)"),
-    "2": ("daily-briefing", "Trigger daily-briefing now"),
-    "3": ("weekly-rule-suggestions", "Trigger weekly-rule-suggestions now"),
+    "1": ("inbox_triage", "Trigger inbox-triage now (with sample-data)"),
+    "2": ("daily_briefing", "Trigger daily-briefing now"),
+    "3": ("weekly_rule_suggestions", "Trigger weekly-rule-suggestions now"),
 }
 
 

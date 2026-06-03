@@ -5,7 +5,6 @@ consistently during local and cloud runs before any reply, Teams post, or
 mark-read action is attempted.
 """
 
-from __future__ import annotations
 
 import re
 from typing import Any

@@ -5,7 +5,6 @@ When MCP is not configured, this tool loads mock JSON messages from
 `sample-data/inbox/` so the sample can run offline.
 """
 
-from __future__ import annotations
 
 import json
 import logging

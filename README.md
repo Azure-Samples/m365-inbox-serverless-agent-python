@@ -59,10 +59,18 @@ This path proves the agent loop works **without Azure resources or connector aut
    func5 setup --features python
    ```
 
-2. Create local settings and leave connector values blank:
+2. Provision Foundry (no app deploy) so you have an endpoint to point at locally:
 
    ```bash
-   cp local.settings.json.example local.settings.json
+   azd auth login
+   azd provision    # ~6–10 min: creates AI Services, model deployment, MI, optional connectors
+   ```
+
+3. Hydrate `local.settings.json` from azd outputs. Auth uses your `az login` identity (no keys):
+
+   ```bash
+   az login                                # one-time
+   ./scripts/hydrate-local-settings.sh
    ```
 
 3. Terminal 1: start the Functions host:
@@ -316,16 +324,25 @@ azd deploy
 
 The `weekly-rule-suggestions` agent reviews recent decisions and suggests small policy changes. Treat those suggestions as human-in-the-loop recommendations: copy only the changes you approve into `skills/vip-rules.md`, review them, then redeploy.
 
-## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Cloud/SVG/ic_fluent_cloud_24_regular.svg" width="22" align="center"> Using Microsoft Foundry (BYOK)
+## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Cloud/SVG/ic_fluent_cloud_24_regular.svg" width="22" align="center"> Choosing a model provider
 
-For Bring Your Own Key / Bring Your Own Model scenarios, configure these values locally or let `azd up` wire them from Bicep outputs:
+The agents runtime auto-selects a provider from environment variables. This sample defaults to **Microsoft Foundry with managed identity** — `azd provision` creates the AI Services account + model deployment, and `scripts/hydrate-local-settings.sh` copies the outputs into `local.settings.json`. No API keys.
+
+**Local + production (default) — Foundry + Entra ID:**
 
 ```bash
-MODEL_DEPLOYMENT_NAME=gpt-5-mini
-AZURE_AI_PROJECT_ENDPOINT=https://<your-ai-services>.services.ai.azure.com/api/projects/<project>
+AZURE_FUNCTIONS_AGENTS_PROVIDER=foundry
+FOUNDRY_PROJECT_ENDPOINT=https://<your-ai-services>.services.ai.azure.com/api/projects/<project>
+FOUNDRY_MODEL=gpt-5-mini
 ```
 
-The agents use `MODEL_DEPLOYMENT_NAME` to select the deployed model and `AZURE_AI_PROJECT_ENDPOINT` to reach your Foundry project. Keep connector endpoint values blank for offline sample-data runs; set them for deployed Microsoft 365 actions.
+Local auth flows through `DefaultAzureCredential` (your `az login`); deployed auth uses the function app's user-assigned managed identity (`AZURE_CLIENT_ID`).
+
+**Azure OpenAI direct (alternative):** set `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_DEPLOYMENT`. Auth defaults to managed identity; set `AZURE_OPENAI_API_KEY` if you must use keys.
+
+> **Note on GitHub Models for free local dev:** the runtime calls the OpenAI **Responses API** (`/responses`), which GitHub Models does not implement (`/chat/completions` only). Tracking with the runtime team.
+
+Keep M365 connector endpoint values blank for offline sample-data runs; set them for deployed Microsoft 365 actions.
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Broom/SVG/ic_fluent_broom_24_regular.svg" width="22" align="center"> Cleanup
 

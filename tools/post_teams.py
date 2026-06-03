@@ -5,7 +5,6 @@ fallback writes markdown under `out/` so local runs show what would have been
 posted to Teams.
 """
 
-from __future__ import annotations
 
 import datetime as dt
 import re

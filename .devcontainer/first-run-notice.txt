@@ -3,8 +3,8 @@
 This image includes Python, Azure Functions Core Tools, Azure Developer CLI, Azurite, and MCP Inspector.
 
 Common commands:
-  pip install -r requirements.txt
-  func start
+  uv sync
+  uv run func start
   ./infra/scripts/discover-teams-ids.sh
 
 Before deploying, set sample-specific values such as TO_EMAIL and any Teams IDs with azd env set.

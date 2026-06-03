@@ -1,6 +1,6 @@
 param connectorGatewayName string
 param outlookConnectionName string = 'office365-outlook'
-param teamsConnectionName string = 'microsoft-teams'
+param teamsConnectionName string = 'teams-connection'
 param outlookMcpServerConfigName string = 'outlook-inbox-agent'
 param teamsMcpServerConfigName string = 'teams-inbox-agent'
 param location string = resourceGroup().location

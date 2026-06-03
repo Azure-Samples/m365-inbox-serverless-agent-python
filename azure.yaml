@@ -8,6 +8,16 @@ services:
     project: ./
     host: function
     language: python
+    hooks:
+      prepackage:
+        posix:
+          shell: sh
+          run: uv export --format requirements-txt --no-hashes --no-dev --no-emit-project > requirements.txt
+          continueOnError: false
+        windows:
+          shell: pwsh
+          run: uv export --format requirements-txt --no-hashes --no-dev --no-emit-project | Set-Content -Path requirements.txt -Encoding utf8
+          continueOnError: false
 hooks:
   postprovision:
     posix:

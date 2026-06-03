@@ -220,3 +220,6 @@ __marimo__/
 # Azure Functions local settings
 local.settings.json
 out/
+
+# Auto-generated from pyproject.toml + uv.lock by 'uv export' (prepackage hook)
+requirements.txt

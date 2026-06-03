@@ -10,7 +10,7 @@ The sample also runs locally without Azure: the inbox tools fall back to `sample
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg" width="22" align="center"> Prerequisites
 
-- Python 3.13+ (the runtime package requires 3.13). Easiest install: [uv](https://docs.astral.sh/uv/) — `uv python install 3.13`
+- Python 3.13+ (the runtime package requires 3.13). Easiest install: [uv](https://docs.astral.sh/uv/) — `uv python install 3.13`. **`uv` is also required at deploy time** to generate `requirements.txt` from `pyproject.toml` + `uv.lock` (the `azd` `prepackage` hook runs `uv export`).
 - [Azure Functions CLI (v5 preview)](https://learn.microsoft.com/en-us/azure/azure-functions/functions-cli-develop-local?pivots=programming-language-python)
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for Azure deployment
 - For production: an Azure subscription, a Microsoft Foundry project/model deployment, and permission to authorize Microsoft 365 connectors

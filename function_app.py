@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import pathlib
+import sys
 
 # Suppress noisy SDK HTTP traces so [TOOL] lines stand out in `func5 run` output.
 # These three account for ~95% of the per-invocation log volume.
@@ -30,7 +31,9 @@ def _warn_on_partial_config() -> None:
     In that state, the agent successfully calls real connectors with a literal
     `<your-mailbox@example.com>` recipient. The connector returns OK on a no-op
     delivery, the function reports success, and nothing reaches the inbox. Make
-    this loud at host startup so users know what's about to happen.
+    this loud at host startup so users know what's about to happen. We print to
+    stderr (not logging) because the Functions Python worker silences arbitrary
+    loggers before our module-level code surfaces.
     """
     settings_path = pathlib.Path("local.settings.json")
     if not settings_path.exists():
@@ -58,23 +61,21 @@ def _warn_on_partial_config() -> None:
     if not issues:
         return
 
-    log = logging.getLogger("m365.config")
-    log.warning("=" * 78)
-    log.warning(
-        "PARTIAL CONFIG: Outlook MCP is wired up but %d setting(s) are placeholders.",
-        len(issues),
-    )
-    log.warning("Agents will call real M365 connectors with placeholder values,")
-    log.warning("which silently no-op (no email arrives, no Teams post lands).")
-    log.warning("")
+    banner = []
+    banner.append("=" * 78)
+    banner.append(f"PARTIAL CONFIG: Outlook MCP is wired up but {len(issues)} setting(s) are placeholders.")
+    banner.append("Agents will call real M365 connectors with placeholder values,")
+    banner.append("which silently no-op (no email arrives, no Teams post lands).")
+    banner.append("")
     for key, purpose in issues:
-        log.warning("  - %s   (needed for %s)", key, purpose)
-    log.warning("")
-    log.warning("Fix: edit local.settings.json, or run:")
+        banner.append(f"  - {key}   (needed for {purpose})")
+    banner.append("")
+    banner.append("Fix: edit local.settings.json, or run:")
     for key, _ in issues:
-        log.warning("    azd env set %s <real-value>", key)
-    log.warning("Then re-run `./infra/scripts/hydrate-local-settings.sh` and restart `uv run func start`.")
-    log.warning("=" * 78)
+        banner.append(f"    azd env set {key} <real-value>")
+    banner.append("Then re-run `./infra/scripts/hydrate-local-settings.sh` and restart `uv run func start`.")
+    banner.append("=" * 78)
+    print("\n".join(banner), file=sys.stderr, flush=True)
 
 
 _warn_on_partial_config()

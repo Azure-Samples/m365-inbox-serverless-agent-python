@@ -21,6 +21,7 @@ LOG_PATH = Path(os.environ.get("ACTION_LOG_PATH", "out/read-log.txt"))
 OUT_DIR = Path(os.environ.get("OUT_DIR", "out"))
 POLL_TIMEOUT_SEC = int(os.environ.get("POLL_TIMEOUT_SEC", "60"))
 SETTINGS_PATH = Path(os.environ.get("LOCAL_SETTINGS_PATH", "local.settings.json"))
+SAMPLE_INBOX_DIR = Path(os.environ.get("SAMPLE_INBOX_DIR", "sample-data/inbox"))
 
 AGENTS = {
     "1": ("inbox_triage", "inbox-triage", "Triage inbox now (classify VIP / incident / FYI; reply or alert)"),
@@ -117,6 +118,64 @@ def _log_byte_size() -> int:
     return LOG_PATH.stat().st_size if LOG_PATH.exists() else 0
 
 
+def _sample_onnewemail_payload(limit: int = 3) -> list[dict]:
+    """Build an OnNewEmailV3-shaped payload from sample-data/inbox/*.json.
+
+    inbox_triage is a connector_trigger; firing it from the admin endpoint
+    sends no payload, so the agent has nothing to triage. We synthesize the
+    first few sample emails into the shape the agent expects ('a list of email
+    objects with fields such as Id, Subject, From, To, BodyPreview, Body,
+    Importance, HasAttachments, ConversationId').
+    """
+    if not SAMPLE_INBOX_DIR.is_dir():
+        return []
+    emails: list[dict] = []
+    for f in sorted(SAMPLE_INBOX_DIR.glob("*.json"))[:limit]:
+        try:
+            graph = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        from_addr = graph.get("from", {}).get("emailAddress", {})
+        to_list = graph.get("toRecipients", [])
+        body = graph.get("body", {}).get("content", "") or ""
+        emails.append({
+            "Id": graph.get("id", ""),
+            "Subject": graph.get("subject", ""),
+            "From": from_addr.get("address", ""),
+            "To": ";".join(r.get("emailAddress", {}).get("address", "") for r in to_list),
+            "BodyPreview": body[:200],
+            "Body": body,
+            "Importance": graph.get("importance", "normal"),
+            "HasAttachments": graph.get("hasAttachments", False),
+            "ConversationId": graph.get("conversationId", graph.get("id", "")),
+        })
+    return emails
+
+
+def _build_input(agent_name: str, is_live: bool) -> tuple[str, str]:
+    """Return (input_payload_json_string, hint_for_user).
+
+    inbox_triage gets a synthesized sample-inbox payload so the agent has
+    something to triage when run from the admin endpoint. Other agents get a
+    small marker so the func host trace shows where the run came from.
+    """
+    if agent_name == "inbox_triage":
+        emails = _sample_onnewemail_payload(limit=3)
+        if emails:
+            hint = f"  Sending {len(emails)} sample email(s) as the OnNewEmailV3 payload (from {SAMPLE_INBOX_DIR}/)."
+            return json.dumps(emails), hint
+        hint = (
+            "  ⚠ No sample emails found in sample-data/inbox/. inbox_triage will receive an empty\n"
+            "    payload and report 'Processed 0 messages' (it's event-driven; manual triggers\n"
+            "    carry no real OnNewEmailV3 event)."
+        )
+        return json.dumps([]), hint
+    return (
+        json.dumps({"source": "chat.py", "mode": "live" if is_live else "sample-data"}),
+        "",
+    )
+
+
 def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None:
     is_live = mode_icon == "🟢"
     is_offline = mode_icon == "🟡" and "Offline" in mode_label
@@ -153,7 +212,8 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
     log_offset = _log_byte_size()
     files_before = _snapshot_out()
 
-    payload = {"input": json.dumps({"source": "chat.py", "mode": "live" if is_live else "sample-data"})}
+    input_str, input_hint = _build_input(agent_name, is_live)
+    payload = {"input": input_str}
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         admin_url(agent_name),
@@ -166,6 +226,8 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
     try:
         with urllib.request.urlopen(req, timeout=30) as response:
             print(f"\n→ Triggered {agent_name} (HTTP {response.status}). Waiting for activity (up to {POLL_TIMEOUT_SEC}s)…")
+            if input_hint:
+                print(input_hint)
             if is_live:
                 print("  Live mode: action goes to real Outlook/Teams. Watch the `func start` terminal for the agent's trace.")
             print()
@@ -215,8 +277,13 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
         size = (OUT_DIR / path).stat().st_size
         print(f"    + out/{path} ({size}B)")
     if seen_lines == 0 and not new_files:
-        if is_live:
-            print("  (Live mode: actions go to real Outlook/Teams, not read-log.txt.")
+        if agent_name == "inbox_triage":
+            print("  (inbox_triage: this agent is event-driven. It only reports activity when the")
+            print("   trigger payload contains email(s). chat.py sends sample emails for you, but if")
+            print("   you saw 'Processed 0 messages' in the func start log, sample-data/inbox/ may be")
+            print("   empty. For real OnNewEmailV3 events, deploy with `azd up`.)")
+        elif is_live:
+            print("  (Live mode: actions went to real Outlook/Teams, not read-log.txt.")
             print("   Check the `func start` window for [TOOL] entries, or your inbox/Teams channel.)")
         elif forced_through_partial:
             print("  (Forced through with placeholder settings: real connector calls used")

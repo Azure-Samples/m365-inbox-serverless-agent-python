@@ -108,6 +108,27 @@ uv run python chat.py     # pick 1, 2, or 3
 
 The agent prompts stay simple: they default to LIVE, and the client injects a `RUN MODE: DRY RUN` block (plus a simulated inbox snapshot for the timer agents) when any required connector is a placeholder.
 
+### Chat with your inbox (read-only)
+
+Option 5 in `chat.py` opens a short back-and-forth where you ask questions about
+your recent mail ("what's urgent?", "who emailed about the deploy?", "summarize
+the thread from finance"). It is **read-only by design**:
+
+- The `inbox-chat` agent is declared with `mcp: false`, so it has **no tools**.
+  It cannot send, reply, post to Teams, or call any connector. This is enforced
+  by configuration, not by the model's judgement — read-only is deterministic.
+- The read itself happens in the client: `chat.py` fetches your recent inbox
+  using only the Outlook read operation (`office365_GetEmailsV3`), fail-closing
+  if anything else is exposed, and injects it as a versioned `INBOX SNAPSHOT`.
+  In Offline/DRY it injects `sample-data/inbox/*.json` instead. Type `refresh`
+  to re-read, `q` to quit.
+- Because the read is client-side, only `chat.py` provides inbox context; a raw
+  POST to `/agents/inbox_chat/chat` with no snapshot gets a "no inbox context"
+  answer rather than a guess.
+- To let this agent take actions later, flip `mcp: false` → `mcp: true` in
+  `inbox-chat.agent.md`. That exposes **all** configured MCP tools (Outlook and
+  Teams) to the agent — a deliberate config change, not a runtime/LLM decision.
+
 ### Go live with real M365 (still local)
 
 ```bash
@@ -146,6 +167,7 @@ function_app.py                   Minimal Functions entry point that loads the a
 inbox-triage.agent.md             Event-driven agent (connector trigger) that classifies new mail and acts.
 daily-briefing.agent.md           Timer agent that summarizes inbox and calendar priorities.
 weekly-rule-suggestions.agent.md  Timer agent that proposes rule updates for human review.
+inbox-chat.agent.md               Read-only conversational agent (no tools) for chatting with your inbox.
 agents.config.yaml                Default model and runtime configuration.
 mcp.json                          Outlook and Teams MCP server configuration.
 tools/                            Local `match_rule` classification tool used by the agents.

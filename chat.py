@@ -70,7 +70,7 @@ def _log_byte_size() -> int:
     return LOG_PATH.stat().st_size if LOG_PATH.exists() else 0
 
 
-def trigger_agent(agent_name: str, mode_icon: str) -> None:
+def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None:
     log_offset = _log_byte_size()
     files_before = _snapshot_out()
     is_live = mode_icon == "🟢"
@@ -140,6 +140,10 @@ def trigger_agent(agent_name: str, mode_icon: str) -> None:
         if is_live:
             print("  (Live mode: actions go to real Outlook/Teams, not read-log.txt.")
             print("   Check the `func start` window for [TOOL] entries, or your inbox/Teams channel.)")
+        elif "Partial" in mode_label:
+            print("  (Partial mode: the function host called real M365 connectors, but the agent")
+            print(f"   addressed mail to the placeholder MAILBOX_OWNER_EMAIL ({mode_label.split('(')[-1].rstrip(')')}).")
+            print("   Set it to your real address in local.settings.json, then restart `uv run func start`.)")
         else:
             print("  (Agent ran but produced no actions or files. Check the func start log for [TOOL] entries.)")
     print()
@@ -189,7 +193,7 @@ def main() -> None:
             print("Goodbye!")
             break
         if choice in AGENTS:
-            trigger_agent(AGENTS[choice][0], mode_icon)
+            trigger_agent(AGENTS[choice][0], mode_icon, mode_label)
             # Re-detect mode after each run in case the user just authorized connectors.
             mode_icon, mode_label = detect_mode()
         elif choice == "4":

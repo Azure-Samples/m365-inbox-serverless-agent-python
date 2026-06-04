@@ -34,10 +34,14 @@ the urgent items in the briefing's "Urgent items" section instead.
 
 ## LIVE steps
 
-1. Call `office365_GetEmailsV3` with `top=20`, `folderPath="Inbox"`,
-   `fetchOnlyUnread=true`. If this call fails, stop now: do **not** call
+1. Call `office365_GetEmailsV3` with `top=5`, `folderPath="Inbox"`,
+   `fetchOnlyUnread=true`. Keep `top` small (no more than 5): each message can
+   carry a long quoted thread, and reading too many at once can exceed the
+   model's context window. If this call fails, stop now: do **not** call
    `SendEmailV2` or the Teams tool. Return `Daily briefing failed: could not
-   read inbox`.
+   read inbox`. When you read a message, use only its subject, sender, date, and
+   the first ~600 characters of the body; ignore long quoted history and
+   signatures.
 2. Compose one HTML body in the Briefing format below.
 3. Call `office365_SendEmailV2` with an `emailMessage` whose `To` is
    `$MAILBOX_OWNER_EMAIL`, `Subject` is

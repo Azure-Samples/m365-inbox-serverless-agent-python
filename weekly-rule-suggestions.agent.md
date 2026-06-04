@@ -32,12 +32,16 @@ that block is authoritative for this run.
 
 ## LIVE steps
 
-1. Call `office365_GetEmailsV3` with `top=50`, `folderPath="Inbox"` to load a
-   sample of the last week's mail. If this call fails, stop now: do **not** call
-   `SendEmailV2`. Return `Weekly suggestions failed: could not read inbox`.
+1. Call `office365_GetEmailsV3` with `top=5`, `folderPath="Inbox"` to load a
+   small sample of recent mail. Keep `top` small (no more than 5): each message
+   can carry a long quoted thread, and reading too many at once can exceed the
+   model's context window. If this call fails, stop now: do **not** call
+   `SendEmailV2`. Return `Weekly suggestions failed: could not read inbox`. When
+   you read a message, use only its subject, sender, date, and the first ~400
+   characters of the body; ignore long quoted history and signatures.
 2. Use the injected `skills/vip-rules.md` context so you do not duplicate
    existing rules. Do not call a tool to load it.
-3. For up to 10 representative messages, call
+3. For up to 5 representative messages, call
    `match_rule(subject=<subject>, sender=<from address>, body=<preview>)` to see
    what already fires. Rules load automatically; do not pass rule text.
 4. Build candidate rules in the Suggestion format below.

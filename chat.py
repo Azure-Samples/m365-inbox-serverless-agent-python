@@ -10,6 +10,7 @@ configured in local.settings.json) vs 🟡 Offline (sample-data fallback).
 
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -118,7 +119,10 @@ def _log_byte_size() -> int:
     return LOG_PATH.stat().st_size if LOG_PATH.exists() else 0
 
 
-def _sample_onnewemail_payload(limit: int = 3) -> list[dict]:
+_TEAMS_TRIGGERING_RX = re.compile(r"urgent|p1\b|incident|escalat|outage", re.IGNORECASE)
+
+
+def _sample_onnewemail_payload(limit: int = 3, exclude_teams_triggers: bool = False) -> list[dict]:
     """Build an OnNewEmailV3-shaped payload from sample-data/inbox/*.json.
 
     inbox_triage is a connector_trigger; firing it from the admin endpoint
@@ -126,21 +130,29 @@ def _sample_onnewemail_payload(limit: int = 3) -> list[dict]:
     first few sample emails into the shape the agent expects ('a list of email
     objects with fields such as Id, Subject, From, To, BodyPreview, Body,
     Importance, HasAttachments, ConversationId').
+
+    When TEAMS_* settings are placeholders, we drop emails whose subject would
+    obviously route to a Teams alert (urgent / P1 / incident / outage). Each
+    failed Teams call counts against the agent runtime's 3-error circuit
+    breaker, which would otherwise abort the run after 3 VIP-flavored samples.
     """
     if not SAMPLE_INBOX_DIR.is_dir():
         return []
     emails: list[dict] = []
-    for f in sorted(SAMPLE_INBOX_DIR.glob("*.json"))[:limit]:
+    for f in sorted(SAMPLE_INBOX_DIR.glob("*.json")):
         try:
             graph = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
+            continue
+        subject = graph.get("subject", "") or ""
+        if exclude_teams_triggers and _TEAMS_TRIGGERING_RX.search(subject):
             continue
         from_addr = graph.get("from", {}).get("emailAddress", {})
         to_list = graph.get("toRecipients", [])
         body = graph.get("body", {}).get("content", "") or ""
         emails.append({
             "Id": graph.get("id", ""),
-            "Subject": graph.get("subject", ""),
+            "Subject": subject,
             "From": from_addr.get("address", ""),
             "To": ";".join(r.get("emailAddress", {}).get("address", "") for r in to_list),
             "BodyPreview": body[:200],
@@ -149,6 +161,8 @@ def _sample_onnewemail_payload(limit: int = 3) -> list[dict]:
             "HasAttachments": graph.get("hasAttachments", False),
             "ConversationId": graph.get("conversationId", graph.get("id", "")),
         })
+        if len(emails) >= limit:
+            break
     return emails
 
 
@@ -160,14 +174,25 @@ def _build_input(agent_name: str, is_live: bool) -> tuple[str, str]:
     small marker so the func host trace shows where the run came from.
     """
     if agent_name == "inbox_triage":
-        emails = _sample_onnewemail_payload(limit=3)
+        _, teams_missing = _missing_for("inbox_triage")
+        exclude_teams = bool(teams_missing)
+        emails = _sample_onnewemail_payload(limit=3, exclude_teams_triggers=exclude_teams)
         if emails:
-            hint = f"  Sending {len(emails)} sample email(s) as the OnNewEmailV3 payload (from {SAMPLE_INBOX_DIR}/)."
+            subjects = ", ".join(repr(e["Subject"][:48]) for e in emails)
+            if exclude_teams:
+                hint = (
+                    f"  Sending {len(emails)} non-Teams-triggering sample email(s) from {SAMPLE_INBOX_DIR}/:\n"
+                    f"    {subjects}\n"
+                    "    (VIP / urgent / incident samples skipped: with TEAMS_* placeholders, each\n"
+                    "    Teams call would fail and trip the agent's 3-error circuit breaker.)"
+                )
+            else:
+                hint = f"  Sending {len(emails)} sample email(s) as the OnNewEmailV3 payload (from {SAMPLE_INBOX_DIR}/)."
             return json.dumps(emails), hint
         hint = (
-            "  ⚠ No sample emails found in sample-data/inbox/. inbox_triage will receive an empty\n"
-            "    payload and report 'Processed 0 messages' (it's event-driven; manual triggers\n"
-            "    carry no real OnNewEmailV3 event)."
+            "  ⚠ No sample emails to send (sample-data/inbox/ is empty, or every sample matched\n"
+            "    a Teams-triggering filter). inbox_triage will receive an empty payload and\n"
+            "    report 'Processed 0 messages'."
         )
         return json.dumps([]), hint
     return (
@@ -278,10 +303,13 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
         print(f"    + out/{path} ({size}B)")
     if seen_lines == 0 and not new_files:
         if agent_name == "inbox_triage":
-            print("  (inbox_triage: this agent is event-driven. It only reports activity when the")
-            print("   trigger payload contains email(s). chat.py sends sample emails for you, but if")
-            print("   you saw 'Processed 0 messages' in the func start log, sample-data/inbox/ may be")
-            print("   empty. For real OnNewEmailV3 events, deploy with `azd up`.)")
+            print("  (0 actions can mean any of:")
+            print("    - the agent's match_rule did not select any sample email for action")
+            print("    - tool calls were attempted and failed (look for 'Maximum consecutive")
+            print("      function call errors reached' in the func start window. that means")
+            print("      3 tool errors in a row tripped the agent runtime's circuit breaker)")
+            print("    - sample-data/inbox/ produced an empty payload")
+            print("   For real OnNewEmailV3 events on incoming mail, deploy with `azd up`.)")
         elif is_live:
             print("  (Live mode: actions went to real Outlook/Teams, not read-log.txt.")
             print("   Check the `func start` window for [TOOL] entries, or your inbox/Teams channel.)")

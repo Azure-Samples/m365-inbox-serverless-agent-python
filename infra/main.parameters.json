@@ -10,6 +10,15 @@
     },
     "principalId": {
       "value": "${AZURE_PRINCIPAL_ID}"
+    },
+    "mailboxOwnerEmail": {
+      "value": "${MAILBOX_OWNER_EMAIL}"
+    },
+    "teamsTeamId": {
+      "value": "${TEAMS_TEAM_ID}"
+    },
+    "teamsChannelId": {
+      "value": "${TEAMS_CHANNEL_ID}"
     }
   }
 }

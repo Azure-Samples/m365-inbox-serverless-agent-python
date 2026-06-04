@@ -35,6 +35,12 @@ param principalId string = ''
 @description('Safety guardrail: address the agent emails for briefings/digests. Start with your own mailbox (the same identity the Outlook connector signs in as). Expand to other recipients only after you trust the agent\'s output.')
 param mailboxOwnerEmail string = '<your-mailbox@example.com>'
 
+@description('Default Teams team (group) id for urgent alerts. Get it from the channel link (the groupId=... value). Set with `azd env set TEAMS_TEAM_ID <id>` (or run infra/scripts/discover-teams-ids.sh). Leave as the placeholder to keep Teams posting in DRY RUN.')
+param teamsTeamId string = '<team-id>'
+
+@description('Default Teams channel id (19:...@thread.tacv2) for urgent alerts. Set with `azd env set TEAMS_CHANNEL_ID <id>` (or run infra/scripts/discover-teams-ids.sh). Leave as the placeholder to keep Teams posting in DRY RUN.')
+param teamsChannelId string = '<channel-id>'
+
 @description('Enable Connector Gateway, managed connections, and managed MCP server endpoints.')
 param enableConnectors bool = true
 
@@ -236,6 +242,8 @@ module api './app/api.bicep' = {
       MAILBOX_OWNER_EMAIL: mailboxOwnerEmail
       OUTLOOK_MCP_ENDPOINT: enableConnectors ? connectors!.outputs.outlookMcpEndpoint : ''
       TEAMS_MCP_ENDPOINT: effectiveTeamsConnectorEnabled ? connectors!.outputs.teamsMcpEndpoint : ''
+      TEAMS_TEAM_ID: effectiveTeamsConnectorEnabled ? teamsTeamId : ''
+      TEAMS_CHANNEL_ID: effectiveTeamsConnectorEnabled ? teamsChannelId : ''
     }
   }
 }
@@ -378,6 +386,8 @@ output STORAGE_CONNECTION__queueServiceUri string = 'https://${storage.outputs.n
 output MAILBOX_OWNER_EMAIL string = mailboxOwnerEmail
 output OUTLOOK_MCP_ENDPOINT string = enableConnectors ? connectors!.outputs.outlookMcpEndpoint : ''
 output TEAMS_MCP_ENDPOINT string = effectiveTeamsConnectorEnabled ? connectors!.outputs.teamsMcpEndpoint : ''
+output TEAMS_TEAM_ID string = effectiveTeamsConnectorEnabled ? teamsTeamId : ''
+output TEAMS_CHANNEL_ID string = effectiveTeamsConnectorEnabled ? teamsChannelId : ''
 output CONNECTOR_GATEWAY_NAME string = enableConnectors ? connectors!.outputs.connectorGatewayName : ''
 output OUTLOOK_CONNECTION_NAME string = enableConnectors ? connectors!.outputs.outlookConnectionName : ''
 output TEAMS_CONNECTION_NAME string = effectiveTeamsConnectorEnabled ? connectors!.outputs.teamsConnectionName : ''

@@ -32,9 +32,16 @@ allowed), and the env suffix is the route upper-cased with `-` replaced by `_`.
 | `team-updates` | `TEAMS_TEAM_ID__TEAM_UPDATES` | `TEAMS_CHANNEL_ID__TEAM_UPDATES` |
 
 Get a team/channel id pair from the Teams channel link
-(`groupId=<TEAM_ID>` and the `19:…@thread.tacv2` channel id). Set them as app
-settings (`azd env set …`) or, for local runs, in `local.settings.json`. Never
-commit real ids — keep them in environment/`local.settings.json` (gitignored).
+(`groupId=<TEAM_ID>` and the `19:…@thread.tacv2` channel id). Never commit real
+ids — keep them in environment/`local.settings.json` (gitignored).
+
+- **Local runs:** set the env vars in `local.settings.json` (or `azd env set …`
+  then re-run `infra/scripts/hydrate-local-settings.sh`).
+- **Deployed:** the **default** channel (`TEAMS_TEAM_ID` / `TEAMS_CHANNEL_ID`) is
+  wired through Bicep, so `azd env set TEAMS_TEAM_ID <id>` + `azd provision`
+  pushes it to the Function App. **Named routes** are dynamic, so Bicep cannot
+  enumerate them — set each one directly on the deployed app, e.g.
+  `az functionapp config appsettings set -g <rg> -n <app> --settings TEAMS_TEAM_ID__INCIDENTS=<id> TEAMS_CHANNEL_ID__INCIDENTS=<id>`.
 
 ## How to add a route
 

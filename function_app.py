@@ -80,6 +80,46 @@ def _warn_on_partial_config() -> None:
 
 _warn_on_partial_config()
 
+
+def _patch_mcp_http_read_timeout() -> None:
+    """Work around a hang in azurefunctions-agents-runtime's MCP HTTP client.
+
+    `azure_functions_agents.discovery.mcp._build_http_client` creates the httpx
+    client with httpx's default 5s read timeout. MCP streamable-HTTP tool results
+    are delivered over a Server-Sent-Events stream; an operation whose response
+    streams (for example the Teams connector's `PostMessageToConversation`) needs
+    no read timeout. With the 5s cap the SSE read stalls, the JSON-RPC response is
+    never dispatched, and the agent call hangs indefinitely. Small/immediate JSON
+    responses (e.g. an @mention or Outlook `SendEmailV2`) are unaffected, which is
+    why this looks like "Teams posting randomly hangs".
+
+    This is a workaround for the preview runtime; tracked upstream and unfixed on
+    main as of azurefunctions-agents-runtime 0.1.0b1:
+    https://github.com/Azure/azure-functions-agents-runtime/issues/63
+    Remove this shim once `_build_http_client` sets an SSE-friendly read timeout.
+    """
+    try:
+        import httpx
+        from azure_functions_agents.discovery import mcp as _mcp
+
+        if getattr(_mcp._build_http_client, "_read_timeout_patched", False):
+            return
+        _orig = _mcp._build_http_client
+
+        def _patched(*args, **kwargs):  # type: ignore[no-untyped-def]
+            client = _orig(*args, **kwargs)
+            if client is not None:
+                client.timeout = httpx.Timeout(30.0, read=None)
+            return client
+
+        _patched._read_timeout_patched = True  # type: ignore[attr-defined]
+        _mcp._build_http_client = _patched
+    except Exception as exc:  # pragma: no cover - never block host startup
+        print(f"[startup] MCP read-timeout shim not applied: {exc}", file=sys.stderr, flush=True)
+
+
+_patch_mcp_http_read_timeout()
+
 from azure_functions_agents import create_function_app  # noqa: E402
 
 app = create_function_app()

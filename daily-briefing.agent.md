@@ -48,9 +48,11 @@ the urgent items in the briefing's "Urgent items" section instead.
    `"[DEMO] 📋 Daily Briefing — <today's YYYY-MM-DD>"`, and `Body` is that HTML.
 4. Only if `TEAMS_ALERTS: ENABLED` **and** one or more items are urgent (VIP /
    `p1` / incident / outage per `skills/vip-rules.md`), call
-   `teams_PostMessageToConversation` once: a `message` object whose `poster` is
-   `"Flow bot"`, `location` is `"Channel"`, `body` targets `$TEAMS_TEAM_ID` /
-   `$TEAMS_CHANNEL_ID` with a 3-line 🚨 HTML summary.
+   `teams_PostMessageToConversation` once with three flat arguments: `poster` =
+   `"Flow bot"`, `location` = `"Channel"`, and `body` =
+   `{ "recipient": { "groupId": "$TEAMS_TEAM_ID", "channelId": "$TEAMS_CHANNEL_ID" }, "messageBody": "<html…>" }`.
+   The briefing always posts to the **default** channel above. `messageBody` is
+   a 3-line 🚨 HTML summary (use `<b>` / `<br>`).
 5. Return one line: `Daily briefing sent (items=N, urgent=U, teams=on|off)`.
 
 ## DRY RUN steps

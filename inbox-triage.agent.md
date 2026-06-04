@@ -54,10 +54,22 @@ The `RUN MODE` line in the prompt is authoritative:
   connector tool (Outlook or Teams). Draft each action as text in the report
   instead. The local `match_rule` tool, if present, is safe to use.
 - **LIVE** — Connectors are configured. For **escalate**, call the Teams MCP
-  tool `teams_PostMessageToConversation` (a `message` object whose `poster` is
-  `"Flow bot"`, `location` is `"Channel"`, `body` targets `$TEAMS_TEAM_ID` /
-  `$TEAMS_CHANNEL_ID` with HTML prefixed by 🚨). For **reply**, call the Outlook
-  MCP tool `office365_SendEmailV2` (`To` is the sender, `Subject` is
+  tool `teams_PostMessageToConversation` with three flat arguments: `poster` =
+  `"Flow bot"`, `location` = `"Channel"`, and `body` = an object
+  `{ "recipient": {…}, "messageBody": "<html…>" }`. Choose `recipient` this way:
+  if `match_rule` returned a `teams_recipient` object, copy it **verbatim** into
+  `body.recipient` (this routes the alert to the rule's channel). Otherwise use
+  the default channel
+  `{ "groupId": "$TEAMS_TEAM_ID", "channelId": "$TEAMS_CHANNEL_ID" }`. Never post
+  the `route_resolved` / `channel` fields to the channel. `messageBody` is
+  **HTML by default** (use `<b>`, `<br>`, `<a href>`; prefix the alert with 🚨).
+  To @mention the owner, embed the literal token `<at>$MAILBOX_OWNER_EMAIL</at>`
+  inside `messageBody` — no separate tool call is needed; the connector resolves
+  it to a real mention. Call `teams_PostMessageToConversation` **once at a time**:
+  if several messages escalate, post them in separate steps and wait for each
+  call to return before making the next — never issue two Teams tool calls in the
+  same step. For **reply**, call
+  the Outlook MCP tool `office365_SendEmailV2` (`To` is the sender, `Subject` is
   `"[DEMO] Re: " + original subject`, `Body` is short HTML). For **summarize**,
   take no action.
 

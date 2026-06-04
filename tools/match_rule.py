@@ -9,6 +9,7 @@ optional so a small model can call it reliably with just the email's subject,
 sender, and body.
 """
 
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,68 @@ RULES_PATH = Path(__file__).resolve().parent.parent / "skills" / "vip-rules.md"
 
 _BACKTICK_RX = re.compile(r"`([^`]+)`")
 _BOLD_RX = re.compile(r"\*\*")
-_LABEL_RX = re.compile(r"^-?\s*(trigger|condition|action|priority|safety)\b[^:]*:", re.IGNORECASE)
+_LABEL_RX = re.compile(
+    r"^-?\s*(trigger|condition|action|priority|safety|channel)\b[^:]*:", re.IGNORECASE
+)
+
+# A route name is a short, lowercase identifier: letters, digits, and internal
+# hyphens only. This keeps the env-suffix transform (`-` -> `_`, upper) free of
+# collisions, since a route name can never itself contain an underscore.
+_ROUTE_RX = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
+
+# Values that mean "this setting was never wired up". Mirrors the placeholder
+# detection used at host startup so an unset named route falls back to default
+# instead of posting to a literal placeholder.
+_PLACEHOLDER_VALUES = {
+    "todo",
+    "changeme",
+    "replace_me",
+    "your-team-id",
+    "your-channel-id",
+    "your-value",
+}
+
+
+def _is_unresolved(value: str | None) -> bool:
+    """True when a Teams id env var is empty or still a placeholder."""
+    if not value:
+        return True
+    stripped = value.strip()
+    if not stripped or stripped.startswith("$") or stripped.startswith("<"):
+        return True
+    return stripped.lower() in _PLACEHOLDER_VALUES
+
+
+def _resolve_channel(route: str) -> dict[str, Any] | None:
+    """Resolve a rule's named route to a Teams recipient.
+
+    Named routes are additive env-var pairs `TEAMS_TEAM_ID__<ROUTE>` and
+    `TEAMS_CHANNEL_ID__<ROUTE>` (see skills/teams-channels.md). The default
+    channel (`TEAMS_TEAM_ID` / `TEAMS_CHANNEL_ID`) is a distinct first-class
+    concept and is never returned here.
+
+    Returns None when the rule names no route. When a route is named:
+      - fully wired   -> {channel, route_resolved: True, teams_recipient:{groupId, channelId}}
+      - unset/invalid -> {channel, route_resolved: False}  (caller uses default)
+    `teams_recipient` is intentionally omitted unless a named route is fully
+    wired, so the default path keeps using the prompt's $TEAMS_* literals and no
+    real ids surface for routes that are not configured.
+    """
+    route = (route or "").strip().strip("`").lower()
+    if not route:
+        return None
+    if not _ROUTE_RX.match(route):
+        return {"channel": route, "route_resolved": False}
+    suffix = route.upper().replace("-", "_")
+    team = os.environ.get(f"TEAMS_TEAM_ID__{suffix}")
+    channel = os.environ.get(f"TEAMS_CHANNEL_ID__{suffix}")
+    if _is_unresolved(team) or _is_unresolved(channel):
+        return {"channel": route, "route_resolved": False}
+    return {
+        "channel": route,
+        "route_resolved": True,
+        "teams_recipient": {"groupId": team.strip(), "channelId": channel.strip()},
+    }
 
 _rules_cache: tuple[tuple[str, int], str] | None = None
 
@@ -84,6 +146,7 @@ def _iter_rule_blocks(rules_text: str) -> list[dict[str, Any]]:
                 "action": [],
                 "priority": "",
                 "safety": "",
+                "channel": "",
             }
             continue
         if current is None:
@@ -109,6 +172,8 @@ def _iter_rule_blocks(rules_text: str) -> list[dict[str, Any]]:
             current["priority"] = value
         elif label == "safety" and not current["safety"]:
             current["safety"] = value
+        elif label == "channel" and not current["channel"]:
+            current["channel"] = value
     if current:
         blocks.append(current)
     return blocks
@@ -127,6 +192,13 @@ async def match_rule(
     argument is optional; when a full mail object is supplied any missing field
     is taken from it. The VIP rules are loaded from disk automatically, so do
     not pass rule text. Returns None when no rule matches.
+
+    When the matched rule names a Teams route (a `Channel:` line) that is fully
+    wired, the result also includes `channel`, `route_resolved: true`, and a
+    `teams_recipient` object `{groupId, channelId}` to copy straight into a Teams
+    post's `body.recipient`. If the named route is unset, `route_resolved` is
+    false and no `teams_recipient` is returned, so the caller uses the default
+    `$TEAMS_TEAM_ID` / `$TEAMS_CHANNEL_ID` channel.
 
     Args:
         mail: Optional full mail object (OnNewEmailV3 or Graph shape). Used to
@@ -155,12 +227,16 @@ async def match_rule(
                 except re.error:
                     continue
         if matched:
-            return {
+            result: dict[str, Any] = {
                 "title": block["title"],
                 "trigger": ", ".join(block["tokens"]) or "pattern",
                 "action": ", ".join(block["action"]),
                 "priority": block["priority"],
                 "safety": block["safety"],
             }
+            route = _resolve_channel(block.get("channel", ""))
+            if route:
+                result.update(route)
+            return result
 
     return None

@@ -232,27 +232,53 @@ resource teamsMcpServerConfig 'Microsoft.Web/connectorGateways/mcpserverconfigs@
           {
             name: 'PostMessageToConversation'
             displayName: 'Post message in a chat or channel'
-            description: 'Posts a message to a Microsoft Teams chat or channel.'
+            description: 'Posts a message to a Microsoft Teams chat or channel. messageBody is HTML; default to HTML formatting.'
             userParameters: []
             agentParameters: [
               {
-                name: 'message'
+                name: 'poster'
+                schema: {
+                  type: 'string'
+                  description: 'Who posts the message. Use "Flow bot".'
+                  required: true
+                }
+              }
+              {
+                name: 'location'
+                schema: {
+                  type: 'string'
+                  description: 'Message destination type. Use "Channel".'
+                  required: true
+                }
+              }
+              {
+                name: 'body'
                 schema: {
                   type: 'object'
+                  description: 'Message payload: the target recipient and the HTML message content.'
+                  required: true
                   properties: {
-                    poster: {
-                      type: 'string'
-                      description: 'Who posts the message. Use Flow bot unless you intentionally use another supported value.'
-                      required: true
-                    }
-                    location: {
-                      type: 'string'
-                      description: 'Message destination type, such as Channel.'
-                      required: true
-                    }
-                    body: {
+                    recipient: {
                       type: 'object'
-                      description: 'Teams message payload including recipient and content.'
+                      description: 'Target Teams team and channel.'
+                      required: true
+                      properties: {
+                        groupId: {
+                          type: 'string'
+                          description: 'Teams team (group) id, from $TEAMS_TEAM_ID.'
+                          required: true
+                        }
+                        channelId: {
+                          type: 'string'
+                          description: 'Teams channel id, from $TEAMS_CHANNEL_ID.'
+                          required: true
+                        }
+                      }
+                    }
+                    messageBody: {
+                      type: 'string'
+                      format: 'html'
+                      description: 'Message content as HTML. Default to HTML formatting (for example <b>, <br>, <a href>). To @mention a user, embed the literal token <at>user@contoso.com</at> directly in this HTML; the connector resolves it to a real mention.'
                       required: true
                     }
                   }

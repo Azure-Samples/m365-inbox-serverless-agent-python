@@ -461,6 +461,18 @@ def _render_result(agent_name: str, result: dict, elapsed: float) -> None:
         print("    - 3 consecutive failures trip the runtime's circuit breaker, which")
         print("      stops further tool calls but still returns a (partial) summary.")
         print("    Run `uv run func start --verbose` to see the exact connector error.")
+
+    live_blocked = (
+        mode != "dry_run"
+        and re.search(r"could not read|forbidden|unauthorized|not authoriz", response_text, re.IGNORECASE)
+    )
+    if live_blocked:
+        print("\n  ⚠ LIVE could not reach your mailbox. The Outlook connection is almost")
+        print("    certainly not authorized yet — this is a one-time OAuth consent, separate")
+        print("    from setting the env vars. Fix it with:")
+        print("        ./infra/scripts/authorize-connectors.sh")
+        print("    Complete the browser consent as the mailbox owner, wait for the connection")
+        print("    to report `Connected`, then retry. Nothing was sent.")
     print()
 
 
@@ -540,15 +552,22 @@ def show_readiness() -> None:
     print()
     if not real("OUTLOOK_MCP_ENDPOINT"):
         print("  Next step to LIVE: provision connectors with `azd up`, then")
-        print("  `./infra/scripts/hydrate-local-settings.sh` and restart `uv run func start`.")
+        print("  `./infra/scripts/hydrate-local-settings.sh`, then authorize the connection")
+        print("  once with `./infra/scripts/authorize-connectors.sh`, and restart the host.")
     elif not real("MAILBOX_OWNER_EMAIL"):
         print("  Next step to LIVE: `azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com`,")
-        print("  then `./infra/scripts/hydrate-local-settings.sh` and restart `uv run func start`.")
+        print("  then `./infra/scripts/hydrate-local-settings.sh`. If you have not already")
+        print("  authorized the Outlook connection, also run (one time)")
+        print("  `./infra/scripts/authorize-connectors.sh`, then restart `uv run func start`.")
     elif not _teams_alerts_enabled():
         print("  Outlook is LIVE. Set TEAMS_TEAM_ID / TEAMS_CHANNEL_ID to enable Teams alerts")
         print("  (inbox escalations and the daily briefing's urgent post).")
     else:
         print("  All connectors set: every agent runs LIVE.")
+    if real("OUTLOOK_MCP_ENDPOINT"):
+        print("  Reminder: LIVE needs the connection authorized once (OAuth consent via")
+        print("  `./infra/scripts/authorize-connectors.sh`). Until it shows `Connected`,")
+        print("  agents cannot read or send and will report `could not read inbox`.")
     print()
 
 
@@ -558,7 +577,8 @@ def print_menu(mode_icon: str, mode_label: str) -> None:
     print(f"Mode: {mode_icon} {mode_label}")
     if mode_icon == "🟡" and "Partial" in mode_label:
         print("      One step from LIVE: `azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com`,")
-        print("      then `./infra/scripts/hydrate-local-settings.sh`. (Option 4 shows details.)")
+        print("      then `./infra/scripts/hydrate-local-settings.sh`, and (one time)")
+        print("      `./infra/scripts/authorize-connectors.sh`. (Option 4 shows details.)")
     elif mode_icon == "🟡":
         print("      Agents run DRY RUN (text deliverables, nothing sent). To go LIVE:")
         print("      `azd up`, then hydrate local settings + authorize connectors. (Option 4.)")

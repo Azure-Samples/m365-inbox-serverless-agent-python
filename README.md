@@ -117,6 +117,8 @@ azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com
 # Ctrl-C the func host, then `uv run func start` again
 ```
 
+`authorize-connectors.sh` is **required** the first time you go live: it runs a one-time OAuth consent so the connector namespace can read your mailbox and send on your behalf. It opens a browser tab per connection and waits until the connection reports `Connected`. Setting the env vars alone is not enough. Until consent completes, LIVE runs fail with `could not read inbox` (the agent stops and sends nothing). Re-running the script is safe; already-authorized connections are skipped.
+
 `chat.py` now shows 🟢 Live. Pick 1, 2, or 3, and the agents read your real inbox and send real mail / Teams posts. `MAILBOX_OWNER_EMAIL` is a safety guardrail: outbound digests go only to that address. Start with your own.
 
 <details>
@@ -128,6 +130,7 @@ azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com
 - **`No installed bundle workload satisfies Microsoft.Azure.Functions.ExtensionBundle.Preview`**. You're on Core Tools v5 preview. v5 can't load the Preview bundle yet ([tracking issue #5309](https://github.com/Azure/azure-functions-core-tools/issues/5309)). Stay on v4.
 - **Worker exits with SIGTERM 143 on startup**. Core Tools < 4.12.0 ships only a Python 3.12 worker. `brew upgrade azure-functions-core-tools@4` to ≥ 4.12.0.
 - **Live mode: `403 Forbidden` from MCP**. The connector connection isn't authorized for the signed-in identity. Re-run `./infra/scripts/authorize-connectors.sh` and complete the browser consent for both Outlook and Teams.
+- **Live mode: agent returns `could not read inbox`**. The Outlook connection has not completed OAuth consent (its status is not `Connected`). Run `./infra/scripts/authorize-connectors.sh`, finish the browser consent as the mailbox owner, wait for `Connected`, then retry. This is a one-time step per connection; env vars alone do not authorize it.
 - **Windows PowerShell hydrate**. Use `pwsh -File ./infra/scripts/hydrate-local-settings.ps1` (skips ExecutionPolicy without `Set-ExecutionPolicy`).
 
 </details>

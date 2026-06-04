@@ -297,27 +297,33 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
     files_after = _snapshot_out()
     new_files = sorted(files_after - files_before)
 
-    print(f"\n✔ Done ({elapsed:0.1f}s). {seen_lines} new action(s); {len(new_files)} new file(s) in out/.")
-    for path in new_files:
-        size = (OUT_DIR / path).stat().st_size
-        print(f"    + out/{path} ({size}B)")
-    if seen_lines == 0 and not new_files:
-        if agent_name == "inbox_triage":
-            print("  (0 actions can mean any of:")
-            print("    - the agent's match_rule did not select any sample email for action")
-            print("    - tool calls were attempted and failed (look for 'Maximum consecutive")
-            print("      function call errors reached' in the func start window. that means")
-            print("      3 tool errors in a row tripped the agent runtime's circuit breaker)")
-            print("    - sample-data/inbox/ produced an empty payload")
-            print("   For real OnNewEmailV3 events on incoming mail, deploy with `azd up`.)")
-        elif is_live:
-            print("  (Live mode: actions went to real Outlook/Teams, not read-log.txt.")
-            print("   Check the `func start` window for [TOOL] entries, or your inbox/Teams channel.)")
-        elif forced_through_partial:
-            print("  (Forced through with placeholder settings: real connector calls used")
-            print("   placeholder recipients, so nothing arrives. See the `Skipped` reason above.)")
-        else:
-            print("  (Agent ran but produced no actions or files. Check the func start log for [TOOL] entries.)")
+    is_offline = mode_icon == "🟡" and "Offline" in (mode_label or "")
+    print(f"\n✔ Done ({elapsed:0.1f}s).")
+
+    if is_offline:
+        print(f"  Offline mode: {seen_lines} new action(s) in {LOG_PATH}; {len(new_files)} new file(s) in out/.")
+        for path in new_files:
+            size = (OUT_DIR / path).stat().st_size
+            print(f"    + out/{path} ({size}B)")
+        if seen_lines == 0 and not new_files:
+            print("  (No actions logged. Check the `func start` window for errors.)")
+    else:
+        print(f"  {mode_icon} {mode_label or 'Live'}: tool calls went to real connectors, not {LOG_PATH}.")
+        print(f"  Look at the `func start` window. Every 'Function name: <tool>' line is one")
+        print(f"  connector call the agent made. Common things to look for:")
+        print(f"    - 'Function name: match_rule' = classification step (one per email)")
+        print(f"    - 'Function name: office365_SendEmailV2' = reply or briefing email sent")
+        print(f"    - 'Function name: teams_PostMessageToChannelV3' = Teams alert posted")
+        print(f"    - 'Maximum consecutive function call errors reached (3)' = circuit breaker tripped;")
+        print(f"      the run continued but stopped calling tools. Usually means placeholder settings.")
+        if new_files:
+            print(f"  Also wrote {len(new_files)} file(s) to out/:")
+            for path in new_files:
+                size = (OUT_DIR / path).stat().st_size
+                print(f"    + out/{path} ({size}B)")
+        if forced_through_partial:
+            print(f"  Note: you forced through with placeholder settings, so any recipient-bound")
+            print(f"  call hit a fake address. Connector may have logged a send error.")
     print()
 
 

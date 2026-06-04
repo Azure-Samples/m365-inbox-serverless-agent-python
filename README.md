@@ -2,27 +2,29 @@
 
 **Think of it as [🦞 OpenClaw](https://github.com/openclaw/openclaw) for the business: a skills-driven agent that actually does things, but secured by Azure managed identity, Entra-authorized M365 connectors, and your own auditable Python functions.**
 
-An inbox-triage sample for the **Azure Functions Serverless Agents Runtime (preview)**. Three timer-triggered agents read a Microsoft 365 inbox, decide what matters, send replies, post urgent alerts to Teams, and suggest rule changes for a human to approve.
+An inbox-triage sample for the Azure Functions Serverless Agents Runtime (preview). Three agents read a Microsoft 365 inbox, decide what matters, send replies, post urgent alerts to Teams, and suggest rule changes for a human to approve.
 
-The sample also runs locally without Azure: the inbox tools fall back to `sample-data/inbox/*.json`, and outbound actions are written to `out/read-log.txt` so you can see exactly what the agents would have done.
+You can run all three agents fully locally. Use `uv run func start` against your real Outlook + Teams via the MCP connectors, or run offline against `sample-data/inbox/*.json` after a one-time `azd provision` (creates the Foundry model deployment the agents need). The one capability that only works deployed is the OnNewEmailV3 event trigger that fires `inbox-triage` automatically on new mail; locally you fire it manually from `chat.py`.
 
 > 📝 Prefer pure markdown with no custom Python? See the [markdown-only sibling](https://github.com/Azure-Samples/m365-inbox-agent-functions-markdown). Full comparison at [the bottom](#-python-variant-vs-markdown-variant).
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg" width="22" align="center"> Prerequisites
 
-- Python 3.13+ (the runtime package requires 3.13). Easiest install: [uv](https://docs.astral.sh/uv/) — `uv python install 3.13`. **`uv` is also required at deploy time** to generate `requirements.txt` from `pyproject.toml` + `uv.lock` (the `azd` `prepackage` hook runs `uv export`).
-- [Azure Functions Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local) (v5 preview cannot load the Preview extension bundle today — see Quickstart note)
-- [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for Azure deployment
-- For production: an Azure subscription, a Microsoft Foundry project/model deployment, and permission to authorize Microsoft 365 connectors
-- The **`connector-namespace` Azure CLI extension** (used by the postdeploy hook to register the Outlook trigger). Install the latest wheel from [Azure/Connectors releases](https://github.com/Azure/Connectors/releases):
+- Python 3.13+. Easiest install: [uv](https://docs.astral.sh/uv/). Then `uv python install 3.13`.
+- [Azure Functions Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local) ≥ 4.12.0 (v5 preview is not yet compatible)
+- [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/)
+- For live M365 or deploy: an Azure subscription, a Microsoft Foundry project/model deployment, and permission to authorize Microsoft 365 connectors
+- The `connector-namespace` Azure CLI extension (needed for live M365 or `azd up`):
 
   ```bash
-  az extension add --source https://github.com/Azure/Connectors/releases/download/<latest>/connector_namespace-<latest>-py3-none-any.whl
+  curl -fsSL https://aka.ms/connector-namespace-cli-install | sh
   ```
+
+  PowerShell + offline install: [Connectors quickstart](https://sandboxes.azure.com/docs/sandboxes/connectors).
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="22" align="center"> Make it yours (private copy)
 
-Once you start editing rules, sample inbox data, or running against your real M365 tenant, you'll want a **private** copy. Public forks cannot be made private on GitHub. Use this repo as a template instead: click <kbd>Use this template</kbd> at the top of GitHub and choose **Private**, or with [GitHub CLI](https://cli.github.com/):
+Once you start editing rules, sample inbox data, or running against your real M365 tenant, you'll want a private copy. Public forks cannot be made private on GitHub. Use this repo as a template instead: click <kbd>Use this template</kbd> at the top of GitHub and choose Private, or with [GitHub CLI](https://cli.github.com/):
 
 ```bash
 OWNER=$(gh api user --jq .login)   # or override with your org
@@ -39,10 +41,10 @@ Files most likely to contain personal/tenant information:
 
 - `skills/vip-rules.md`, `skills/triage-rules.md`: your VIPs and triage logic
 - `sample-data/inbox/*.json`: any real mail you paste in for testing
-- `local.settings.json`, `.env`: secrets and endpoints (**already gitignored**)
+- `local.settings.json`, `.env`: secrets and endpoints (already gitignored)
 - `infra/main.parameters.json`: subscription/tenant-specific values if you customize
 
-Even in a private repo, never commit real secrets. This sample uses **managed identity** for Foundry and **Entra-authorized connectors** for Microsoft 365, so there are no app-managed credentials to leak. For any custom integrations you add, keep that pattern (managed identity, then role assignment) rather than pasting keys.
+Even in a private repo, never commit real secrets. This sample uses managed identity for Foundry and Entra-authorized connectors for Microsoft 365, so there are no app-managed credentials to leak. For any custom integrations you add, keep that pattern (managed identity, then role assignment) rather than pasting keys.
 
 **Getting upstream updates.** Sync your private copy from this repo with a single GitHub CLI command, then pull locally:
 
@@ -55,73 +57,63 @@ The Functions Serverless Agents Runtime is in preview, so expect occasional fixe
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Rocket/SVG/ic_fluent_rocket_24_regular.svg" width="22" align="center"> Quickstart
 
-This path proves the agent loop works **without Azure resources or connector authorization**. With MCP endpoints blank, the Python fallback tools read mock mail from `sample-data/inbox/*.json`, classify it, and write the local actions they would have taken to `out/read-log.txt`. You can see reasoning in the `func start` terminal and action records in the log. No real email is sent and no Teams post is made.
+### One-time setup
 
-1. Install **Azure Functions Core Tools v4 (≥ 4.12.0)** and **Azurite** (one-time). The serverless agents runtime needs the **Preview** extension bundle (`Microsoft.Azure.Functions.ExtensionBundle.Preview`) plus a **Python 3.13** worker. The v5 CLI (`func 5.0.0-preview.x`) does not yet ship a workload package for the Preview bundle — see [issue #5309](https://github.com/Azure/azure-functions-core-tools/issues/5309) — and Core Tools < 4.12.0 (e.g. brew 4.6.0) only ships a Python 3.12 worker, which causes the worker to exit with SIGTERM 143 against this runtime. The Functions host also needs local blob storage during startup; **Azurite** provides it.
+```bash
+brew tap azure/functions
+brew install azure-functions-core-tools@4
+npm install -g azurite
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-   macOS (Homebrew):
+> Linux / Windows / WSL: use the [Core Tools v4 install guide](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools), [Azurite install guide](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite), and [uv install guide](https://docs.astral.sh/uv/getting-started/installation/).
 
-   ```bash
-   brew tap azure/functions
-   brew install azure-functions-core-tools@4   # if fresh
-   brew upgrade azure-functions-core-tools@4   # if already installed; must be >= 4.12.0
-   npm i -g azurite                            # local blob/queue/table emulator
-   ```
+### Run it offline (sample-data)
 
-   Linux / Windows / other: see [Install Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools) and [Install Azurite](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite). Before running `func start`, start Azurite in another terminal: `azurite --silent --location /tmp/azurite`.
+```bash
+# Terminal A
+azurite --silent --location .azurite
 
-2. Provision Foundry (no app deploy) so you have an endpoint to point at locally:
+# Terminal B
+azd provision
+./infra/scripts/hydrate-local-settings.sh
+uv run func start
 
-   ```bash
-   azd auth login
-   azd provision    # ~6–10 min: creates AI Services, model deployment, MI, optional connectors
-   ```
+# Terminal C
+uv run python chat.py     # pick 1, 2, or 3
+```
 
-3. Hydrate `local.settings.json` from azd outputs. Auth uses your `az login` identity (no keys):
-
-   Bash (macOS / Linux / WSL):
-
-   ```bash
-   az login                                # one-time
-   ./infra/scripts/hydrate-local-settings.sh
-   ```
-
-   Windows PowerShell:
-
-   ```powershell
-   az login                                # one-time
-   pwsh -File ./infra/scripts/hydrate-local-settings.ps1
-   ```
-
-   > `pwsh -File <path>` runs the script without triggering Windows ExecutionPolicy — no `Set-ExecutionPolicy` needed.
-
-3. Terminal 1: start the Functions host (uv prepends the 3.13 venv to PATH so Core Tools picks the 3.13 worker and sees `agent_functions`):
-
-   ```bash
-   uv run func start
-   ```
-
-4. Terminal 2: trigger the timer immediately instead of waiting five minutes:
-
-   ```bash
-   uv run python chat.py   # then pick 1 for inbox-triage
-   ```
-
-5. Verify the offline action log:
-
-   ```bash
-   tail -n 20 out/read-log.txt
-   ```
-
-Success looks like this:
+`chat.py` shows a 🟡 Offline banner. The agent reads `sample-data/inbox/*.json` and logs what it would have done to `out/read-log.txt`. No real email or Teams post is sent.
 
 ```text
 [2026-06-03T00:00:00+00:00] inbox-triage list_inbox returned 5 messages from sample-data/inbox
 [2026-06-03T00:00:01+00:00] inbox-triage match_rule matched "URGENT: Customer renewal blocker needs decision today" as post_teams (VIP contact)
-[2026-06-03T00:00:02+00:00] inbox-triage post_teams (offline) channel=<TEAMS_CHANNEL_ID> summary="🚨 VIP Alert: Customer renewal blocker needs decision today..."
+[2026-06-03T00:00:02+00:00] inbox-triage post_teams (offline) channel=<TEAMS_CHANNEL_ID> summary="🚨 VIP Alert..."
 ```
 
-Also keep the `func start` terminal visible; the run summary shows what the agent read, how it classified each message, and which tool fallback it dispatched.
+### Go live with real M365 (still local)
+
+```bash
+azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com
+./infra/scripts/hydrate-local-settings.sh
+./infra/scripts/authorize-connectors.sh
+# Ctrl-C the func host, then `uv run func start` again
+```
+
+`chat.py` now shows 🟢 Live. Pick 1, 2, or 3, and the agents read your real inbox and send real mail / Teams posts. `MAILBOX_OWNER_EMAIL` is a safety guardrail: outbound digests go only to that address. Start with your own.
+
+<details>
+<summary>Troubleshooting</summary>
+
+- **`Port 7071 is unavailable`**. Another `func` is still running. `lsof -nP -iTCP:7071 -sTCP:LISTEN` to find the PID, then `kill <pid>`.
+- **`ModuleNotFoundError: agent_functions`**. Core Tools picked a Python worker that can't see the venv. Always start with `uv run func start`, not bare `func start`. `uv run` prepends `.venv/bin` so the 3.13 worker is selected.
+- **`Connection refused 127.0.0.1:10000`**. Azurite isn't running. Start it in another terminal.
+- **`No installed bundle workload satisfies Microsoft.Azure.Functions.ExtensionBundle.Preview`**. You're on Core Tools v5 preview. v5 can't load the Preview bundle yet ([tracking issue #5309](https://github.com/Azure/azure-functions-core-tools/issues/5309)). Stay on v4.
+- **Worker exits with SIGTERM 143 on startup**. Core Tools < 4.12.0 ships only a Python 3.12 worker. `brew upgrade azure-functions-core-tools@4` to ≥ 4.12.0.
+- **Live mode: `403 Forbidden` from MCP**. The connector connection isn't authorized for the signed-in identity. Re-run `./infra/scripts/authorize-connectors.sh` and complete the browser consent for both Outlook and Teams.
+- **Windows PowerShell hydrate**. Use `pwsh -File ./infra/scripts/hydrate-local-settings.ps1` (skips ExecutionPolicy without `Set-ExecutionPolicy`).
+
+</details>
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Code/SVG/ic_fluent_code_24_regular.svg" width="22" align="center"> Source Code
 
@@ -144,33 +136,19 @@ infra/                            Azure resources created by azd.
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Cloud/SVG/ic_fluent_cloud_24_regular.svg" width="22" align="center"> Deploy to Azure
 
-1. Sign in:
+```bash
+azd up
+```
 
-   ```bash
-   azd auth login
-   ```
+**What you get:** `inbox-triage` now fires automatically on every new mail. No `chat.py`, no timer wait. The agent reads, classifies, replies, and posts to Teams on its own.
 
-2. Set the mailbox the agent is allowed to email (safety guardrail):
+**Try it:** send yourself an email, then watch the Teams channel (for VIP/incident mail) or your inbox (for action-required replies). Tail the live decision trace:
 
-   ```bash
-   azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com
-   ```
+```bash
+azd monitor --logs
+```
 
-   The `daily-briefing` and `weekly-rule-suggestions` agents send digests **only** to `MAILBOX_OWNER_EMAIL`. Start with your own mailbox — the same identity the Outlook connector signs in as. Once you trust the agent's output, you can change the recipient or edit the agent prompts to add more recipients.
-
-   > **Migrating from an earlier version?** This setting was previously `TO_EMAIL`. Run `azd env set MAILBOX_OWNER_EMAIL <value>`, then delete the old `TO_EMAIL=...` line from `.azure/<env>/.env`.
-
-3. Deploy:
-
-   ```bash
-   azd up
-   ```
-
-4. After deployment, review outputs:
-
-   ```bash
-   azd env get-values
-   ```
+> **Migrating from an earlier version?** `MAILBOX_OWNER_EMAIL` was previously `TO_EMAIL`. Run `azd env set MAILBOX_OWNER_EMAIL <value>`, then delete the old `TO_EMAIL=...` line from `.azure/<env>/.env`.
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Cloud/SVG/ic_fluent_cloud_24_regular.svg" width="22" align="center"> What Gets Deployed
 
@@ -181,24 +159,6 @@ infra/                            Azure resources created by azd.
 - Connector Namespace resources for Outlook and Teams MCP managed servers
 - Managed identity and RBAC assignments needed by the Function App
 - App settings for `MAILBOX_OWNER_EMAIL`, MCP endpoints, Teams target IDs, and Foundry model settings
-
-## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Key/SVG/ic_fluent_key_24_regular.svg" width="22" align="center"> Authorize Connectors
-
-The sample is **event-driven**: the `inbox-triage` agent runs on the Office 365 `OnNewEmailV3` connector trigger — there is no polling. `daily-briefing` and `weekly-rule-suggestions` stay on timers and read the inbox via the same Outlook MCP connector.
-
-`azd up` runs a `postdeploy` hook (`infra/scripts/configure-trigger.sh` / `.ps1`) that:
-
-1. Reads the `connector_extension` system key from the deployed function app.
-2. Calls `az connector-namespace trigger create` to subscribe the Outlook connection to `OnNewEmailV3` and point the callback URL at the `inbox_triage` function.
-3. Opens a browser tab for **OAuth consent** on the Outlook (and Teams, if enabled) connection, then polls until each connection reports `Connected`.
-
-If the hook prints a missing-extension error, install the prereq from [Prerequisites](#prerequisites) and re-run:
-
-```bash
-azd hooks run postdeploy
-```
-
-Local dev note: the connector trigger only fires against the deployed function app (it needs a public callback URL). Locally, invoke an agent over HTTP from `chat.py`; the read paths (`GetEmailsV3`, `SendEmailV2`, Teams `PostMessageToConversation`) still work as long as your developer identity has the access policy on the MCP connection (`deployerPrincipalId` is wired by the Bicep).
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Building/SVG/ic_fluent_building_24_regular.svg" width="22" align="center"> Architecture
 
@@ -359,9 +319,9 @@ The `weekly-rule-suggestions` agent reviews recent decisions and suggests small 
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Cloud/SVG/ic_fluent_cloud_24_regular.svg" width="22" align="center"> Choosing a model provider
 
-The agents runtime auto-selects a provider from environment variables. This sample defaults to **Microsoft Foundry with managed identity** — `azd provision` creates the AI Services account + model deployment, and `infra/scripts/hydrate-local-settings.sh` copies the outputs into `local.settings.json`. No API keys.
+The agents runtime auto-selects a provider from environment variables. This sample defaults to Microsoft Foundry with managed identity. `azd provision` creates the AI Services account + model deployment, and `infra/scripts/hydrate-local-settings.sh` copies the outputs into `local.settings.json`. No API keys.
 
-**Local + production (default) — Foundry + Entra ID:**
+**Local + production (default), Foundry + Entra ID:**
 
 ```bash
 AZURE_FUNCTIONS_AGENTS_PROVIDER=foundry
@@ -373,7 +333,7 @@ Local auth flows through `DefaultAzureCredential` (your `az login`); deployed au
 
 **Azure OpenAI direct (alternative):** set `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_DEPLOYMENT`. Auth defaults to managed identity; set `AZURE_OPENAI_API_KEY` if you must use keys.
 
-> **Note on GitHub Models for free local dev:** the runtime calls the OpenAI **Responses API** (`/responses`), which GitHub Models does not implement (`/chat/completions` only). Tracking with the runtime team.
+> **Note on GitHub Models for free local dev:** the runtime calls the OpenAI Responses API (`/responses`), which GitHub Models does not implement (`/chat/completions` only). Tracking with the runtime team.
 
 Keep M365 connector endpoint values blank for offline sample-data runs; set them for deployed Microsoft 365 actions.
 
@@ -406,13 +366,13 @@ azd down --purge
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Mail/SVG/ic_fluent_mail_24_regular.svg" width="22" align="center"> Python variant vs Markdown variant
 
-Both repos define the **same three agents, same skills, same Bicep, same governance**. The difference is where the logic lives.
+Both repos define the same three agents, same skills, same Bicep, same governance. The difference is where the logic lives.
 
 | | **This repo (Python)** | [Markdown sibling](https://github.com/Azure-Samples/m365-inbox-agent-functions-markdown) |
 |---|---|---|
-| Agent logic | LLM reasons from `.agent.md` + skills text, **plus** custom `tools/*.py` functions | Same, but **without** `tools/` |
+| Agent logic | LLM reasons from `.agent.md` + skills text, plus custom `tools/*.py` functions | Same, but without `tools/` |
 | `tools/` directory | ✅ ~5 Python tools (rule matching, triage actions, etc.) | ❌ none (by design) |
-| I/O path | MCP **or** local file fallback when MCP env vars unset | MCP only (Outlook & Teams managed connectors) |
+| I/O path | MCP or local file fallback when MCP env vars unset | MCP only (Outlook & Teams managed connectors) |
 | Offline dev | `uv run python chat.py` reads `sample-data/inbox/*.json`, writes `.eml`/`.md` to `out/` | Requires provisioned MCP |
 | `function_app.py` | One line: `app = create_function_app()` (tools auto-discovered) | Identical one line |
 | Hand-written Python | ~1 line + ~300 across `tools/` | ~1 line |

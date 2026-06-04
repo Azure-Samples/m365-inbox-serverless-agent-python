@@ -65,49 +65,8 @@ az connector-namespace trigger create `
     --description "Office 365 OnNewEmailV3 -> inbox_triage" | Out-Null
 
 Write-Host "✅ Trigger config created." -ForegroundColor Green
-
-function Authorize-Connection {
-    param([string]$ConnectionName, [string]$Description)
-
-    Write-Host "-> Authorizing $Description ($ConnectionName)..." -ForegroundColor Cyan
-    $status = az connector-namespace connection show -g $resourceGroup --namespace $connectorGateway -n $ConnectionName --query "properties.overallStatus" -o tsv 2>$null
-    if ($status -and $status.ToLower() -eq "connected") {
-        Write-Host "   already Connected; skipping consent." -ForegroundColor Green
-        return
-    }
-
-    $params = '[{"parameterName":"token","redirectUrl":"https://portal.azure.com"}]'
-    $consentJson = az connector-namespace connection list-consent-links -g $resourceGroup --namespace $connectorGateway --connection-name $ConnectionName --parameters $params -o json 2>$null | ConvertFrom-Json
-    $link = $consentJson.value[0].link
-    if (-not $link) {
-        Write-Host "   could not get consent link; skipping." -ForegroundColor Red
-        return
-    }
-    Write-Host "   opening browser for OAuth consent..." -ForegroundColor Cyan
-    Start-Process $link
-
-    $deadline = (Get-Date).AddSeconds(300)
-    $last = ""
-    while ((Get-Date) -lt $deadline) {
-        $status = az connector-namespace connection show -g $resourceGroup --namespace $connectorGateway -n $ConnectionName --query "properties.overallStatus" -o tsv 2>$null
-        if ($status -ne $last) {
-            Write-Host "   status: $status" -ForegroundColor Cyan
-            $last = $status
-        }
-        if ($status -and $status.ToLower() -eq "connected") {
-            Write-Host "   ✓ $ConnectionName authenticated" -ForegroundColor Green
-            return
-        }
-        Start-Sleep -Seconds 3
-    }
-    Write-Host "   timed out (5 min). Re-run: azd hooks run postdeploy" -ForegroundColor Yellow
-}
-
-Authorize-Connection -ConnectionName $outlookConnection -Description "Office 365 Outlook"
-if ($teamsConnection) {
-    Authorize-Connection -ConnectionName $teamsConnection -Description "Microsoft Teams"
-}
-
 Write-Host ""
-Write-Host "✅ Connector trigger configuration complete." -ForegroundColor Green
+Write-Host "Authorizing connector connections so the trigger can fire..." -ForegroundColor Cyan
+& "$PSScriptRoot/authorize-connectors.ps1"
+Write-Host ""
 Write-Host "Send yourself an email to trigger the Inbox Triage agent." -ForegroundColor Cyan

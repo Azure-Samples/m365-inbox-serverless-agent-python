@@ -81,69 +81,8 @@ az connector-namespace trigger create \
   --description "Office 365 OnNewEmailV3 -> inbox_triage" >/dev/null
 
 echo -e "${GREEN}✅ Trigger config created.${NC}"
-
-open_url() {
-  local url="$1"
-  if command -v open >/dev/null 2>&1; then open "$url" >/dev/null 2>&1 || true
-  elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$url" >/dev/null 2>&1 || true
-  elif command -v wslview >/dev/null 2>&1; then wslview "$url" >/dev/null 2>&1 || true
-  fi
-}
-
-authorize() {
-  local connectionName="$1" description="$2"
-  echo -e "${CYAN}-> Authorizing ${description} (${connectionName})...${NC}"
-  local status
-  status=$(az connector-namespace connection show -g "$resourceGroup" \
-    --namespace "$connectorGateway" -n "$connectionName" \
-    --query "properties.overallStatus" -o tsv 2>/dev/null || echo "")
-  if [[ "$(echo "$status" | tr '[:upper:]' '[:lower:]')" == "connected" ]]; then
-    echo -e "${GREEN}   already Connected; skipping consent.${NC}"
-    return
-  fi
-
-  local params consentJson link
-  params='[{"parameterName":"token","redirectUrl":"https://portal.azure.com"}]'
-  consentJson=$(az connector-namespace connection list-consent-links \
-    -g "$resourceGroup" --namespace "$connectorGateway" \
-    --connection-name "$connectionName" --parameters "$params" -o json 2>/dev/null || echo "")
-  link=$(echo "$consentJson" | jq -r '.value[0].link // empty' 2>/dev/null || echo "")
-
-  if [[ -z "$link" ]]; then
-    echo -e "${RED}   could not get consent link; skipping.${NC}"
-    return
-  fi
-
-  echo -e "${CYAN}   opening browser for OAuth consent...${NC}"
-  echo -e "${CYAN}   (if no tab opens, paste this URL manually)${NC}"
-  open_url "$link"
-
-  local deadline=$(( $(date +%s) + 300 ))
-  local last=""
-  while [[ $(date +%s) -lt $deadline ]]; do
-    status=$(az connector-namespace connection show -g "$resourceGroup" \
-      --namespace "$connectorGateway" -n "$connectionName" \
-      --query "properties.overallStatus" -o tsv 2>/dev/null || echo "")
-    if [[ "$status" != "$last" ]]; then
-      echo -e "${CYAN}   status: ${status:-?}${NC}"
-      last="$status"
-    fi
-    if [[ "$(echo "$status" | tr '[:upper:]' '[:lower:]')" == "connected" ]]; then
-      echo -e "${GREEN}   ✓ ${connectionName} authenticated${NC}"
-      return
-    fi
-    sleep 3
-  done
-  echo -e "${YELLOW}   timed out (5 min). Re-run: azd hooks run postdeploy${NC}"
-}
-
-authorize "$outlookConnection" "Office 365 Outlook"
-
-teamsConnection=$(echo "$outputs" | jq -r '.TEAMS_CONNECTION_NAME // ""')
-if [[ -n "$teamsConnection" && "$teamsConnection" != "null" ]]; then
-  authorize "$teamsConnection" "Microsoft Teams"
-fi
-
 echo ""
-echo -e "${GREEN}✅ Connector trigger configuration complete.${NC}"
+echo -e "${CYAN}Authorizing connector connections so the trigger can fire...${NC}"
+"$(dirname "$0")/authorize-connectors.sh"
+echo ""
 echo -e "${CYAN}Send yourself an email to trigger the Inbox Triage agent.${NC}"

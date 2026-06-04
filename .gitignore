@@ -223,3 +223,4 @@ out/
 
 # Auto-generated from pyproject.toml + uv.lock by 'uv export' (prepackage hook)
 requirements.txt
+.azurite/

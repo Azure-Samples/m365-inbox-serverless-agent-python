@@ -28,6 +28,30 @@ AGENTS = {
     "3": ("weekly_rule_suggestions", "weekly-rule-suggestions", "Propose rule updates based on recent decisions"),
 }
 
+# Per-agent settings dependencies. REQUIRED keys are used on every run; if any
+# are placeholders the agent silently no-ops, so we hard-gate. CONDITIONAL keys
+# are only touched on certain branches (e.g. Teams alerts on urgent matches),
+# so we surface a soft warning but still allow the run.
+AGENT_DEPS: dict[str, dict[str, tuple[str, ...]]] = {
+    "inbox_triage": {
+        "required": (),
+        "conditional": ("TEAMS_TEAM_ID", "TEAMS_CHANNEL_ID"),
+    },
+    "daily_briefing": {
+        "required": ("MAILBOX_OWNER_EMAIL",),
+        "conditional": ("TEAMS_TEAM_ID", "TEAMS_CHANNEL_ID"),
+    },
+    "weekly_rule_suggestions": {
+        "required": ("MAILBOX_OWNER_EMAIL",),
+        "conditional": (),
+    },
+}
+DEP_PURPOSE = {
+    "MAILBOX_OWNER_EMAIL": "Outlook recipient",
+    "TEAMS_TEAM_ID": "Teams alerts on urgent items",
+    "TEAMS_CHANNEL_ID": "Teams alerts on urgent items",
+}
+
 
 def _read_local_settings() -> dict[str, str]:
     if not SETTINGS_PATH.exists():
@@ -40,14 +64,37 @@ def _read_local_settings() -> dict[str, str]:
     return {k: v for k, v in values.items() if isinstance(v, str)}
 
 
+def _is_placeholder(value: str | None) -> bool:
+    if not value:
+        return True
+    s = value.strip()
+    return s == "" or s.startswith("<") or s.startswith("$")
+
+
+def _missing_for(agent_name: str) -> tuple[list[str], list[str]]:
+    """Return (required_missing, conditional_missing) settings for an agent."""
+    values = _read_local_settings()
+    deps = AGENT_DEPS.get(agent_name, {"required": (), "conditional": ()})
+
+    def _check(keys: tuple[str, ...]) -> list[str]:
+        out = []
+        for k in keys:
+            v = values.get(k) or os.environ.get(k) or ""
+            if _is_placeholder(v):
+                out.append(k)
+        return out
+
+    return _check(deps["required"]), _check(deps["conditional"])
+
+
 def detect_mode() -> tuple[str, str]:
     """Return (icon, label) describing whether the host is wired to real M365."""
     values = _read_local_settings()
-    outlook = (values.get("OUTLOOK_MCP_ENDPOINT") or os.environ.get("OUTLOOK_MCP_ENDPOINT") or "").strip()
-    mailbox = (values.get("MAILBOX_OWNER_EMAIL") or os.environ.get("MAILBOX_OWNER_EMAIL") or "").strip()
-    if outlook and not outlook.startswith("<") and mailbox and not mailbox.startswith("<"):
-        return ("🟢", f"Live M365  ({mailbox})")
-    if outlook and not outlook.startswith("<"):
+    outlook = values.get("OUTLOOK_MCP_ENDPOINT") or os.environ.get("OUTLOOK_MCP_ENDPOINT") or ""
+    mailbox = values.get("MAILBOX_OWNER_EMAIL") or os.environ.get("MAILBOX_OWNER_EMAIL") or ""
+    if not _is_placeholder(outlook) and not _is_placeholder(mailbox):
+        return ("🟢", f"Live M365  ({mailbox.strip()})")
+    if not _is_placeholder(outlook):
         return ("🟡", "Partial: Outlook MCP set, but MAILBOX_OWNER_EMAIL is a placeholder")
     return ("🟡", "Offline (sample-data + out/read-log.txt)")
 
@@ -72,23 +119,36 @@ def _log_byte_size() -> int:
 
 def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None:
     is_live = mode_icon == "🟢"
-    is_partial = mode_icon == "🟡" and "Partial" in mode_label
+    is_offline = mode_icon == "🟡" and "Offline" in mode_label
+    forced_through_partial = False
 
-    if is_partial:
-        print(f"\n⚠ Skipped: {agent_name} would silently no-op in partial mode.")
-        print("  OUTLOOK_MCP_ENDPOINT is wired to real M365, but MAILBOX_OWNER_EMAIL is still")
-        print("  a placeholder, so the agent would address SendEmail to '<your-mailbox@example.com>'")
-        print("  and nothing would arrive in your inbox.")
-        print()
-        print("  Fix:")
-        print("    1. Edit local.settings.json: set MAILBOX_OWNER_EMAIL to your real address.")
-        print("    2. Ctrl-C the `uv run func start` window and restart it.")
-        print()
-        answer = input("  Trigger anyway? (y/N): ").strip().lower()
-        if answer != "y":
+    if not is_offline:
+        required_missing, conditional_missing = _missing_for(agent_name)
+
+        if required_missing:
+            names = ", ".join(required_missing)
+            print(f"\n⚠ Skipped: {agent_name} needs {names} but it's still a placeholder.")
+            print("  The agent would call real M365 connectors with a placeholder recipient,")
+            print("  which returns OK but delivers nothing. Output would look successful")
+            print("  while nothing arrives in your inbox.")
             print()
-            return
-        print()
+            print("  Fix:")
+            for k in required_missing:
+                print(f"    - set {k} ({DEP_PURPOSE.get(k, 'used by this agent')}) in local.settings.json")
+            print("    - Ctrl-C the `uv run func start` window and restart it.")
+            print()
+            answer = input("  Trigger anyway? (y/N): ").strip().lower()
+            if answer != "y":
+                print()
+                return
+            forced_through_partial = True
+            print()
+        elif conditional_missing:
+            names = ", ".join(conditional_missing)
+            print(f"\nℹ Note: {agent_name} will run, but {names} is a placeholder.")
+            print(f"  Any branch that needs it ({DEP_PURPOSE.get(conditional_missing[0], 'optional path')})")
+            print("  will silently no-op. Other actions still work.")
+            print()
 
     log_offset = _log_byte_size()
     files_before = _snapshot_out()
@@ -158,9 +218,9 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
         if is_live:
             print("  (Live mode: actions go to real Outlook/Teams, not read-log.txt.")
             print("   Check the `func start` window for [TOOL] entries, or your inbox/Teams channel.)")
-        elif is_partial:
-            print("  (Forced through in partial mode: real connector calls used placeholder")
-            print("   recipients, so nothing arrives. See the `Skipped` reason above to fix.)")
+        elif forced_through_partial:
+            print("  (Forced through with placeholder settings: real connector calls used")
+            print("   placeholder recipients, so nothing arrives. See the `Skipped` reason above.)")
         else:
             print("  (Agent ran but produced no actions or files. Check the func start log for [TOOL] entries.)")
     print()

@@ -1,6 +1,6 @@
 # Teams Channel Posting Pattern
 
-Use Teams MCP for production posts. The `post_teams` tool is an offline fallback that writes markdown files under `out/`.
+Channel alerts go through the Teams MCP `teams_PostMessageToConversation` action. In DRY RUN (the client injects a `RUN MODE: DRY RUN` block) do not call any connector; draft the alert as text in the run output instead.
 
 ## When to post
 
@@ -27,10 +27,10 @@ Use Teams MCP for production posts. The `post_teams` tool is an offline fallback
 
 - Team id comes from `$TEAMS_TEAM_ID`.
 - Channel id comes from `$TEAMS_CHANNEL_ID`.
-- Local fallback accepts placeholders so demos can run without real IDs.
+- When either id is a placeholder, the client runs the agent in DRY RUN, so no post is attempted.
 
 ## Safety
 
 - Teams alerts are for awareness; do not claim an incident was acknowledged or resolved.
 - Do not post confidential content to broad channels.
-- If channel configuration is missing, include the alert in the email/run summary instead.
+- In DRY RUN, include the alert in the run output only. In LIVE, only fall back to email if the agent prompt explicitly defines an email briefing; otherwise omit the post.

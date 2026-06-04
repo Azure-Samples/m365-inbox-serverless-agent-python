@@ -1,6 +1,6 @@
 # Safe Email Reply Pattern
 
-Use Outlook MCP to send or reply in production. The `send_reply` tool is an offline fallback that writes `.eml` files.
+Replies go through the Outlook MCP `office365_SendEmailV2` action. In DRY RUN (the client injects a `RUN MODE: DRY RUN` block) do not call any connector; draft the reply as text in the run output instead.
 
 ## Before replying
 
@@ -12,7 +12,7 @@ Use Outlook MCP to send or reply in production. The `send_reply` tool is an offl
 
 ## Reply content
 
-- Keep the subject threaded as `Re: <original subject>` unless sending a digest.
+- Keep the subject threaded with the per-agent prompt's prefix (for example `[DEMO] Re: <original subject>`) unless sending a digest.
 - Be concise, specific, and helpful.
 - Avoid commitments about dates, pricing, roadmap, legal terms, security posture, or incident status unless source content explicitly supports them.
 - Include a next step when useful.
@@ -20,10 +20,10 @@ Use Outlook MCP to send or reply in production. The `send_reply` tool is an offl
 
 ## Execution order
 
-1. Send the reply with Outlook MCP when available.
-2. If MCP is unavailable, call `send_reply` with `to`, `subject`, `body_html`, and optional `in_reply_to_id`.
-3. After a successful send, mark the original message read with Outlook MCP or `mark_read`.
-4. Log the action in the run summary.
+1. In DRY RUN, draft the reply as text and stop; call no connector.
+2. In LIVE, call `office365_SendEmailV2` with `To`, the prompt's `Subject` prefix, and an HTML body.
+3. After a successful send, mark the original message read with `office365_MarkAsRead_V3`.
+4. Record the action in the run summary.
 
 ## Never do this
 

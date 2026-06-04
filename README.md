@@ -83,13 +83,30 @@ uv run func start
 uv run python chat.py     # pick 1, 2, or 3
 ```
 
-`chat.py` shows a 🟡 Offline banner. The agent reads `sample-data/inbox/*.json` and logs what it would have done to `out/read-log.txt`. No real email or Teams post is sent.
+`chat.py` shows a 🟡 Offline banner. Every agent runs in DRY RUN: it produces its full deliverable as text in the response and calls no connector, so nothing is emailed or posted. Option 4 prints a readiness table showing each agent's mode and what is still missing to go live.
 
 ```text
-[2026-06-03T00:00:00+00:00] inbox-triage list_inbox returned 5 messages from sample-data/inbox
-[2026-06-03T00:00:01+00:00] inbox-triage match_rule matched "URGENT: Customer renewal blocker needs decision today" as post_teams (VIP contact)
-[2026-06-03T00:00:02+00:00] inbox-triage post_teams (offline) channel=<TEAMS_CHANNEL_ID> summary="🚨 VIP Alert..."
+ℹ daily_briefing: DRY RUN — produces a text deliverable and sends nothing.
+
+  Daily briefing (draft):
+    📋 Daily Briefing — 2026-06-04
+    Headline: Two urgent operational issues plus a few scheduling and review requests.
+    Top items:
+      1. URGENT: Customer renewal blocker... — vip-name@example.com: Decision needed before 5 PM UTC.
+      2. P1 IcM: Checkout API elevated failures — incident.bot@contoso.example: 18% create-order failures.
+    Urgent items:
+      - URGENT: Customer renewal blocker — VIP renewal decision needed before 5 PM UTC.
 ```
+
+### Three modes, one client
+
+`chat.py` detects which mode you are in and labels every run:
+
+- **🟡 Offline** — no connectors configured. All agents DRY RUN from the sample inbox and render text deliverables. Nothing is sent.
+- **🟡 Partial** — Outlook is wired but `MAILBOX_OWNER_EMAIL` (or the Teams ids) is still a placeholder. Agents still DRY RUN for safety, so a placeholder recipient never bounces. You are one setting from live; option 4 shows the exact step.
+- **🟢 Live** — every required connector is real. Agents read your real inbox and send real mail / Teams posts.
+
+The agent prompts stay simple: they default to LIVE, and the client injects a `RUN MODE: DRY RUN` block (plus a simulated inbox snapshot for the timer agents) when any required connector is a placeholder.
 
 ### Go live with real M365 (still local)
 
@@ -121,15 +138,14 @@ azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com
 README.md                         This guide.
 chat.py                           Friendly local client for manually triggering timer agents.
 .env.example                      Environment variable reference for local and deployed runs.
-sample-data/inbox.json            Offline Graph-shaped inbox fixture used by local fallback tools.
-sample-data/inbox/*.json          Individual mock inbox messages for scenarios and tests.
+sample-data/inbox/*.json          Mock inbox messages used as the DRY RUN snapshot and in scenarios/tests.
 function_app.py                   Minimal Functions entry point that loads the agents runtime.
-inbox-triage.agent.md             Timer agent that classifies inbox items and takes action.
+inbox-triage.agent.md             Event-driven agent (connector trigger) that classifies new mail and acts.
 daily-briefing.agent.md           Timer agent that summarizes inbox and calendar priorities.
 weekly-rule-suggestions.agent.md  Timer agent that proposes rule updates for human review.
 agents.config.yaml                Default model and runtime configuration.
 mcp.json                          Outlook and Teams MCP server configuration.
-tools/                            Local Python tools and fallback action logging.
+tools/                            Local `match_rule` classification tool used by the agents.
 skills/vip-rules.md               Editable triage policy used by the agents.
 infra/                            Azure resources created by azd.
 ```
@@ -201,10 +217,10 @@ flowchart TD
 
 | Building block | Tool that implements it | Skill that explains it | Agent that uses it |
 | --- | --- | --- | --- |
-| Trigger on inbox | Timer trigger declared on `inbox-triage.agent.md`; local manual runs use `POST /admin/functions/inbox-triage` | `skills/vip-rules.md` explains what counts as important inbox work | `inbox-triage` |
-| Read inbox | `tools/list_inbox.py` reads Microsoft Graph through Outlook MCP when configured, or `sample-data/inbox.json` offline | `skills/vip-rules.md` describes VIP, incident, FYI, and action-required handling | `inbox-triage`, `daily-briefing`, `weekly-rule-suggestions` |
-| Send email | Outlook MCP `sendMail` through the Connector Namespace; local fallback logs the draft action | `skills/vip-rules.md` explains when to draft or send a reply | `inbox-triage` |
-| Post to Teams | Teams MCP channel-post tool through the Connector Namespace; local fallback logs the Teams alert | `skills/vip-rules.md` explains escalation criteria | `inbox-triage`, `daily-briefing` |
+| Trigger on inbox | `connector_trigger` on `inbox-triage.agent.md` (event-driven on new mail); local runs call the agent's `/chat` endpoint via `chat.py` | `skills/vip-rules.md` explains what counts as important inbox work | `inbox-triage` |
+| Read inbox | Outlook MCP `office365_GetEmailsV3` through the Connector Namespace in LIVE; in DRY RUN `chat.py` injects `sample-data/inbox/*.json` as the snapshot | `skills/vip-rules.md` describes VIP, incident, FYI, and action-required handling | `inbox-triage`, `daily-briefing`, `weekly-rule-suggestions` |
+| Send email | Outlook MCP `office365_SendEmailV2` through the Connector Namespace; in DRY RUN the reply is drafted as text in the report | `skills/vip-rules.md` explains when to reply | `inbox-triage`, `daily-briefing`, `weekly-rule-suggestions` |
+| Post to Teams | Teams MCP `teams_PostMessageToConversation` through the Connector Namespace; in DRY RUN the alert is drafted as text | `skills/vip-rules.md` explains escalation criteria | `inbox-triage`, `daily-briefing` |
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Beaker/SVG/ic_fluent_beaker_24_regular.svg" width="22" align="center"> Scenarios
 
@@ -232,12 +248,11 @@ flowchart TD
 uv run python chat.py   # then pick 1
 ```
 
-**What you should see (offline / Python):**
-- In the `func start` terminal: lines like `inbox-triage: classified URGENT... as vip` and `dispatching Teams alert via tool fallback`.
-- In `out/read-log.txt`: `[<ts>] inbox-triage post_teams (offline) channel=<TEAMS_CHANNEL_ID> summary="🚨 VIP Alert..."`.
-- Verify with: `tail -n 20 out/read-log.txt`.
+**What you should see (DRY RUN — offline or partial):**
+- `chat.py` prints a **Triage report** with one block per message. The VIP renewal email is labeled 🚨 `escalate` with the Teams alert drafted as text; its `Status` is `drafted`, not `posted`.
+- Tool calls show `match_rule ×N` and zero `office365_*` / `teams_*` calls. The run ends `Triaged 5: 2 escalate, 2 reply, 1 summarize`.
 
-**What you should see (deployed / connectors authorized):**
+**What you should see (LIVE — connectors authorized):**
 - A real message appears in the configured Teams channel within about one minute.
 - Application Insights `traces` shows the VIP decision and Teams post.
 
@@ -265,12 +280,11 @@ uv run python chat.py   # then pick 1
 uv run python chat.py   # pick 1 for triage, then pick 2 for daily-briefing
 ```
 
-**What you should see (offline / Python):**
-- In the `func start` terminal: incident classification plus a briefing summary that names Checkout API.
-- In `out/read-log.txt`: `post_teams (offline)` for the incident and `send_reply (offline)` for the daily briefing.
-- Verify with: `tail -n 20 out/read-log.txt` and open the newest `out/*.eml`.
+**What you should see (DRY RUN — offline or partial):**
+- Option 1 (triage) labels the P1 incident 🚨 `escalate` with a drafted Teams alert naming Checkout API.
+- Option 2 (daily-briefing) prints a **Daily briefing (draft)** whose top items and Urgent items section name the Checkout API incident. Tool calls: none; it ends `Briefing drafted (items=N, urgent=U) — not sent`.
 
-**What you should see (deployed / connectors authorized):**
+**What you should see (LIVE — connectors authorized):**
 - A Teams alert appears for the P1 incident.
 - The configured `MAILBOX_OWNER_EMAIL` mailbox receives a daily briefing that includes severity, product, impact, and owner ask.
 
@@ -298,13 +312,12 @@ uv run python chat.py   # pick 1 for triage, then pick 2 for daily-briefing
 uv run python chat.py   # then pick 1
 ```
 
-**What you should see (offline / Python):**
-- In the `func start` terminal: `action-required` classification and reply planning.
-- In `out/read-log.txt`: `[<ts>] inbox-triage send_reply (offline) to=priya.patel@contoso.example subject="..."`.
-- Verify with: `tail -n 20 out/read-log.txt` and open the newest matching `out/*.eml`.
+**What you should see (DRY RUN — offline or partial):**
+- The triage report labels the launch-FAQ mail ✉️ `reply` and shows the drafted reply text under `Action`, with `Status: drafted` (nothing is sent).
+- The reply acknowledges the Friday deadline and lists next steps, all inside the report.
 
-**What you should see (deployed / connectors authorized):**
-- Outlook sends or drafts a concise reply that acknowledges Friday and lists next steps.
+**What you should see (LIVE — connectors authorized):**
+- Outlook sends a concise reply that acknowledges Friday and lists next steps.
 - Application Insights `traces` shows the reply decision.
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Edit/SVG/ic_fluent_edit_24_regular.svg" width="22" align="center"> Customizing Rules
@@ -352,7 +365,7 @@ azd down --purge
 | Connector authorization fails | Reopen the Connector Namespace portal URL from deployment outputs, sign in with the mailbox/channel owner, and reauthorize Outlook and Teams. |
 | MCP endpoint missing | Run `azd env get-values` and confirm `OUTLOOK_MCP_ENDPOINT` and `TEAMS_MCP_ENDPOINT` are populated. If blank, rerun `azd up` and check Connector Namespace deployment logs. |
 | Timer is not firing | Confirm the Functions host shows the timer trigger loaded at startup. The v5 CLI starts Azurite automatically; pass `--no-azurite` only if you intentionally point `AzureWebJobsStorage` elsewhere. |
-| Local run cannot reach Azure | Leave MCP endpoint variables blank and use option 1 in `chat.py`; the tools should read `sample-data/inbox.json` and log actions to `out/read-log.txt`. |
+| Local run cannot reach Azure | Leave the MCP endpoint variables blank and use `chat.py`; every agent runs DRY RUN and prints its deliverable as text. Option 4 shows what's missing to go live. |
 | Manual trigger returns 404 | Confirm the Functions host is running and agent function names are `inbox-triage`, `daily-briefing`, and `weekly-rule-suggestions`. |
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Book/SVG/ic_fluent_book_24_regular.svg" width="22" align="center"> Learn More
@@ -370,12 +383,12 @@ Both repos define the same three agents, same skills, same Bicep, same governanc
 
 | | **This repo (Python)** | [Markdown sibling](https://github.com/Azure-Samples/m365-inbox-agent-functions-markdown) |
 |---|---|---|
-| Agent logic | LLM reasons from `.agent.md` + skills text, plus custom `tools/*.py` functions | Same, but without `tools/` |
-| `tools/` directory | ✅ ~5 Python tools (rule matching, triage actions, etc.) | ❌ none (by design) |
-| I/O path | MCP or local file fallback when MCP env vars unset | MCP only (Outlook & Teams managed connectors) |
-| Offline dev | `uv run python chat.py` reads `sample-data/inbox/*.json`, writes `.eml`/`.md` to `out/` | Requires provisioned MCP |
+| Agent logic | LLM reasons from `.agent.md` + skills text, plus one `tools/match_rule.py` classifier | Same, but without `tools/` |
+| `tools/` directory | ✅ one Python tool (`match_rule.py`, deterministic classification) | ❌ none (by design) |
+| I/O path | MCP connectors in LIVE; DRY RUN renders deliverables as text when settings are placeholders | MCP only (Outlook & Teams managed connectors) |
+| Offline dev | `uv run python chat.py` runs every agent in DRY RUN from `sample-data/inbox/*.json` and prints text deliverables | Same |
 | `function_app.py` | One line: `app = create_function_app()` (tools auto-discovered) | Identical one line |
-| Hand-written Python | ~1 line + ~300 across `tools/` | ~1 line |
+| Hand-written Python | ~1 line + `tools/match_rule.py` | ~1 line |
 
 **Pick this repo if** you want a code escape hatch for offline hacking, deterministic rule matching, or learning the SDK.
 **Pick the markdown sibling if** you want to see the runtime's declarative promise: a production-shaped M365 agent with effectively zero hand-written code.

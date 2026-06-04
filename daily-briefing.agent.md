@@ -25,7 +25,7 @@ You prepare a daily inbox briefing for the mailbox owner.
    - A short "Action items today" list if any messages clearly require a
      response.
 3. Call the Outlook MCP tool `office365_SendEmailV2` with an `emailMessage`
-   object whose `To` is `$TO_EMAIL`, `Subject` is
+   object whose `To` is `$MAILBOX_OWNER_EMAIL`, `Subject` is
    `"📋 Daily Briefing — <today's YYYY-MM-DD>"`, and `Body` is the HTML
    from step 2.
 4. If any top items match `urgent`, `p1`, `incident`, or VIP sender names from

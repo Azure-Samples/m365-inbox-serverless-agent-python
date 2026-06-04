@@ -8,7 +8,7 @@ if [ ! -f "./local.settings.json" ]; then
     StorageConnectionQueue=""
     ModelDeploymentName=""
     AzureOpenAIEndpoint=""
-    ToEmail=""
+    MailboxOwnerEmail=""
     OutlookMcpEndpoint=""
     TeamsMcpEndpoint=""
 
@@ -18,7 +18,7 @@ if [ ! -f "./local.settings.json" ]; then
             STORAGE_CONNECTION__queueServiceUri*) StorageConnectionQueue=$(echo "$line" | cut -d '=' -f 2- | tr -d '"') ;;
             MODEL_DEPLOYMENT_NAME*) ModelDeploymentName=$(echo "$line" | cut -d '=' -f 2- | tr -d '"') ;;
             AZURE_OPENAI_ENDPOINT*) AzureOpenAIEndpoint=$(echo "$line" | cut -d '=' -f 2- | tr -d '"') ;;
-            TO_EMAIL*) ToEmail=$(echo "$line" | cut -d '=' -f 2- | tr -d '"') ;;
+            MAILBOX_OWNER_EMAIL*) MailboxOwnerEmail=$(echo "$line" | cut -d '=' -f 2- | tr -d '"') ;;
             OUTLOOK_MCP_ENDPOINT*) OutlookMcpEndpoint=$(echo "$line" | cut -d '=' -f 2- | tr -d '"') ;;
             TEAMS_MCP_ENDPOINT*) TeamsMcpEndpoint=$(echo "$line" | cut -d '=' -f 2- | tr -d '"') ;;
         esac
@@ -38,7 +38,7 @@ if [ ! -f "./local.settings.json" ]; then
     "AZURE_OPENAI_ENDPOINT": "$AzureOpenAIEndpoint",
     "AZURE_OPENAI_DEPLOYMENT_NAME": "$ModelDeploymentName",
     "STORAGE_CONNECTION__queueServiceUri": "$StorageConnectionQueue",
-    "TO_EMAIL": "$ToEmail",
+    "MAILBOX_OWNER_EMAIL": "$MailboxOwnerEmail",
     "OUTLOOK_MCP_ENDPOINT": "$OutlookMcpEndpoint",
     "TEAMS_MCP_ENDPOINT": "$TeamsMcpEndpoint"
   }

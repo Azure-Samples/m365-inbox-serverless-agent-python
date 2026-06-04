@@ -7,4 +7,4 @@ Common commands:
   uv run func start
   ./infra/scripts/discover-teams-ids.sh
 
-Before deploying, set sample-specific values such as TO_EMAIL and any Teams IDs with azd env set.
+Before deploying, set sample-specific values such as MAILBOX_OWNER_EMAIL and any Teams IDs with azd env set.

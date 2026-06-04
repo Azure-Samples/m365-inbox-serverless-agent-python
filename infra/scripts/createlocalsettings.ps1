@@ -8,7 +8,7 @@ if (-not (Test-Path ".\local.settings.json")) {
         if ($line -match "^STORAGE_CONNECTION__queueServiceUri") { $StorageConnectionQueue = ($line -split "=", 2)[1] -replace '"','' }
         if ($line -match "^MODEL_DEPLOYMENT_NAME") { $ModelDeploymentName = ($line -split "=", 2)[1] -replace '"','' }
         if ($line -match "^AZURE_OPENAI_ENDPOINT") { $AzureOpenAIEndpoint = ($line -split "=", 2)[1] -replace '"','' }
-        if ($line -match "^TO_EMAIL") { $ToEmail = ($line -split "=", 2)[1] -replace '"','' }
+        if ($line -match "^MAILBOX_OWNER_EMAIL") { $MailboxOwnerEmail = ($line -split "=", 2)[1] -replace '"','' }
         if ($line -match "^OUTLOOK_MCP_ENDPOINT") { $OutlookMcpEndpoint = ($line -split "=", 2)[1] -replace '"','' }
         if ($line -match "^TEAMS_MCP_ENDPOINT") { $TeamsMcpEndpoint = ($line -split "=", 2)[1] -replace '"','' }
     }
@@ -26,7 +26,7 @@ if (-not (Test-Path ".\local.settings.json")) {
             AZURE_OPENAI_ENDPOINT = "$AzureOpenAIEndpoint"
             AZURE_OPENAI_DEPLOYMENT_NAME = "$ModelDeploymentName"
             STORAGE_CONNECTION__queueServiceUri = "$StorageConnectionQueue"
-            TO_EMAIL = "$ToEmail"
+            MAILBOX_OWNER_EMAIL = "$MailboxOwnerEmail"
             OUTLOOK_MCP_ENDPOINT = "$OutlookMcpEndpoint"
             TEAMS_MCP_ENDPOINT = "$TeamsMcpEndpoint"
         }

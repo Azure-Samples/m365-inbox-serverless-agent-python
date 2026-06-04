@@ -44,7 +44,7 @@ $settings = [ordered]@{
         FOUNDRY_PROJECT_ENDPOINT         = $envVars['FOUNDRY_PROJECT_ENDPOINT']
         FOUNDRY_MODEL                    = $envVars['FOUNDRY_MODEL']
 
-        TO_EMAIL                         = ($envVars['TO_EMAIL']            ?? 'you@example.com')
+        MAILBOX_OWNER_EMAIL                         = ($envVars['MAILBOX_OWNER_EMAIL']            ?? '<your-mailbox@example.com>')
         OUTLOOK_MCP_ENDPOINT             = ($envVars['OUTLOOK_MCP_ENDPOINT'] ?? '')
         TEAMS_MCP_ENDPOINT               = ($envVars['TEAMS_MCP_ENDPOINT']   ?? '')
         TEAMS_TEAM_ID                    = ($envVars['TEAMS_TEAM_ID']        ?? '')

@@ -32,8 +32,8 @@ param storageAccountName string = ''
 @description('Optional: Your Microsoft Entra user/service principal object ID for development access. Leave empty for production. Local development should use azd up, which sets this automatically.')
 param principalId string = ''
 
-@description('Recipient email address for inbox triage notifications. Override before deployment.')
-param toEmail string = '<recipient@example.com>'
+@description('Safety guardrail: address the agent emails for briefings/digests. Start with your own mailbox (the same identity the Outlook connector signs in as). Expand to other recipients only after you trust the agent\'s output.')
+param mailboxOwnerEmail string = '<your-mailbox@example.com>'
 
 @description('Enable Connector Gateway, managed connections, and managed MCP server endpoints.')
 param enableConnectors bool = true
@@ -233,7 +233,7 @@ module api './app/api.bicep' = {
       AZURE_CLIENT_ID: apiUserAssignedIdentity.outputs.clientId
       FOUNDRY_PROJECT_ENDPOINT: aiProject.outputs.projectEndpoint
       FOUNDRY_MODEL: modelDeploymentName
-      TO_EMAIL: toEmail
+      MAILBOX_OWNER_EMAIL: mailboxOwnerEmail
       OUTLOOK_MCP_ENDPOINT: enableConnectors ? connectors!.outputs.outlookMcpEndpoint : ''
       TEAMS_MCP_ENDPOINT: effectiveTeamsConnectorEnabled ? connectors!.outputs.teamsMcpEndpoint : ''
     }
@@ -375,7 +375,7 @@ output FOUNDRY_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
 output FOUNDRY_MODEL string = modelDeploymentName
 output AZURE_CLIENT_ID string = apiUserAssignedIdentity.outputs.clientId
 output STORAGE_CONNECTION__queueServiceUri string = 'https://${storage.outputs.name}.queue.${environment().suffixes.storage}'
-output TO_EMAIL string = toEmail
+output MAILBOX_OWNER_EMAIL string = mailboxOwnerEmail
 output OUTLOOK_MCP_ENDPOINT string = enableConnectors ? connectors!.outputs.outlookMcpEndpoint : ''
 output TEAMS_MCP_ENDPOINT string = effectiveTeamsConnectorEnabled ? connectors!.outputs.teamsMcpEndpoint : ''
 output CONNECTOR_GATEWAY_NAME string = enableConnectors ? connectors!.outputs.connectorGatewayName : ''

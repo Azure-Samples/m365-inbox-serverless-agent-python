@@ -31,7 +31,7 @@ cat > local.settings.json << EOF
     "FOUNDRY_PROJECT_ENDPOINT": "${FOUNDRY_PROJECT_ENDPOINT}",
     "FOUNDRY_MODEL": "${FOUNDRY_MODEL}",
 
-    "TO_EMAIL": "${TO_EMAIL:-you@example.com}",
+    "MAILBOX_OWNER_EMAIL": "${MAILBOX_OWNER_EMAIL:-you@example.com}",
     "OUTLOOK_MCP_ENDPOINT": "${OUTLOOK_MCP_ENDPOINT:-}",
     "TEAMS_MCP_ENDPOINT": "${TEAMS_MCP_ENDPOINT:-}",
     "TEAMS_TEAM_ID": "${TEAMS_TEAM_ID:-}",

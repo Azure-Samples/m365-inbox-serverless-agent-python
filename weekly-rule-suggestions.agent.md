@@ -26,7 +26,7 @@ You identify useful inbox automation rules. You never change rule files yourself
    covered. For each, draft markdown in the exact format from `vip-rules.md`
    (Trigger / Condition / Action / Priority / Safety).
 5. Call the Outlook MCP tool `office365_SendEmailV2` with an `emailMessage`
-   object whose `To` is `$TO_EMAIL`, `Subject` is
+   object whose `To` is `$MAILBOX_OWNER_EMAIL`, `Subject` is
    `"🧠 Weekly Rule Suggestions — <today's YYYY-MM-DD>"`, and `Body` is
    HTML containing the rule candidates and brief evidence.
 6. Return a single-line summary: `Suggested R new rules (analyzed N messages)`.

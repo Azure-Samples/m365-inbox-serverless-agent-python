@@ -150,11 +150,15 @@ infra/                            Azure resources created by azd.
    azd auth login
    ```
 
-2. Set the mailbox recipient used by deployment outputs and sample actions:
+2. Set the mailbox the agent is allowed to email (safety guardrail):
 
    ```bash
-   azd env set TO_EMAIL recipient@example.com
+   azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com
    ```
+
+   The `daily-briefing` and `weekly-rule-suggestions` agents send digests **only** to `MAILBOX_OWNER_EMAIL`. Start with your own mailbox — the same identity the Outlook connector signs in as. Once you trust the agent's output, you can change the recipient or edit the agent prompts to add more recipients.
+
+   > **Migrating from an earlier version?** This setting was previously `TO_EMAIL`. Run `azd env set MAILBOX_OWNER_EMAIL <value>`, then delete the old `TO_EMAIL=...` line from `.azure/<env>/.env`.
 
 3. Deploy:
 
@@ -176,7 +180,7 @@ infra/                            Azure resources created by azd.
 - Microsoft Foundry account/project connection and model deployment configuration
 - Connector Namespace resources for Outlook and Teams MCP managed servers
 - Managed identity and RBAC assignments needed by the Function App
-- App settings for `TO_EMAIL`, MCP endpoints, Teams target IDs, and Foundry model settings
+- App settings for `MAILBOX_OWNER_EMAIL`, MCP endpoints, Teams target IDs, and Foundry model settings
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Key/SVG/ic_fluent_key_24_regular.svg" width="22" align="center"> Authorize Connectors
 
@@ -308,7 +312,7 @@ uv run python chat.py   # pick 1 for triage, then pick 2 for daily-briefing
 
 **What you should see (deployed / connectors authorized):**
 - A Teams alert appears for the P1 incident.
-- The configured `TO_EMAIL` mailbox receives a daily briefing that includes severity, product, impact, and owner ask.
+- The configured `MAILBOX_OWNER_EMAIL` mailbox receives a daily briefing that includes severity, product, impact, and owner ask.
 
 ### <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Checkmark/SVG/ic_fluent_checkmark_24_regular.svg" width="22" align="center"> 3. Action-required mail gets a reply
 

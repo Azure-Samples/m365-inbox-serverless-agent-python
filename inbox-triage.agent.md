@@ -28,8 +28,9 @@ such as `Id`, `Subject`, `From`, `To`, `BodyPreview`, `Body`, `Importance`,
 
 For **every** message in the trigger payload:
 
-1. Build a `mail` dict mirroring the trigger payload fields and call
-   `match_rule(mail=<that dict>, rules_text=<contents of skills/vip-rules.md>)`.
+1. Call `match_rule(subject=<subject>, sender=<from address>, body=<body or
+   preview>)`. The VIP rules load from `skills/vip-rules.md` automatically, so
+   do not pass rule text. A return of `null` means no special rule matched.
 2. Branch on the rule's action:
    - If action mentions `teams`, `alert`, or `escalat`: call the Teams MCP
      tool `teams_PostMessageToConversation` with a `message` object whose

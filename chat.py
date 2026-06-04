@@ -1,8 +1,9 @@
 """Local test client for the M365 Inbox Agent function app.
 
 Calls each agent's built-in synchronous chat endpoint
-(`POST /api/agents/<agent>/chat`, enabled by `builtin_endpoints.chat_api`
-in the .agent.md frontmatter), then prints exactly what the agent did:
+(`POST /agents/<agent>/chat`, enabled by `builtin_endpoints.chat_api`
+in the .agent.md frontmatter; the route prefix is read from host.json),
+then prints exactly what the agent did:
 every tool call it made and its final one-line summary. No log scraping.
 
 Shows a mode banner at the top: 🟢 Live (real Outlook/Teams MCP endpoints
@@ -24,6 +25,7 @@ LOG_PATH = Path(os.environ.get("ACTION_LOG_PATH", "out/read-log.txt"))
 CHAT_TIMEOUT_SEC = int(os.environ.get("CHAT_TIMEOUT_SEC", "180"))
 SETTINGS_PATH = Path(os.environ.get("LOCAL_SETTINGS_PATH", "local.settings.json"))
 SAMPLE_INBOX_DIR = Path(os.environ.get("SAMPLE_INBOX_DIR", "sample-data/inbox"))
+HOST_JSON_PATH = Path(os.environ.get("HOST_JSON_PATH", "host.json"))
 
 AGENTS = {
     "1": ("inbox_triage", "inbox-triage", "Triage inbox now (classify VIP / incident / FYI; reply or alert)"),
@@ -109,8 +111,31 @@ def _mailbox_owner() -> str | None:
     return None if _is_placeholder(mailbox) else mailbox.strip()
 
 
+def _route_prefix() -> str:
+    """Read extensions.http.routePrefix from host.json.
+
+    Azure Functions defaults the HTTP route prefix to 'api' when the key is
+    absent. This app sets it to '' in host.json, so the builtin chat route is
+    served at /agents/<agent>/chat (no /api). Honoring host.json keeps chat.py
+    correct regardless of how the prefix is configured.
+    """
+    override = os.environ.get("ROUTE_PREFIX")
+    if override is not None:
+        return override.strip("/")
+    try:
+        host = json.loads(HOST_JSON_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "api"
+    http_cfg = host.get("extensions", {}).get("http", {})
+    if "routePrefix" in http_cfg:
+        return str(http_cfg["routePrefix"]).strip("/")
+    return "api"
+
+
 def chat_url(agent_name: str) -> str:
-    url = f"{BASE_URL}/api/agents/{agent_name}/chat"
+    prefix = _route_prefix()
+    path = f"agents/{agent_name}/chat"
+    url = f"{BASE_URL}/{prefix}/{path}" if prefix else f"{BASE_URL}/{path}"
     if FUNCTION_KEY:
         url += f"?code={FUNCTION_KEY}"
     return url
@@ -363,10 +388,11 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
         details = exc.read().decode("utf-8", errors="replace").strip()
         print(f"\nError calling {agent_name} /chat: HTTP {exc.code}")
         if exc.code == 404:
-            print("  The /chat endpoint is not registered. Add this to the agent's .agent.md")
-            print("  frontmatter, then restart `uv run func start`:")
-            print("      builtin_endpoints:")
-            print("        chat_api: true")
+            print(f"  No agent responded at {chat_url(agent_name)}")
+            print("  Check that:")
+            print("    - the .agent.md frontmatter has builtin_endpoints.chat_api: true")
+            print("    - host.json extensions.http.routePrefix matches (this client reads it)")
+            print("    - you restarted `uv run func start` after editing either file")
         if details:
             print(f"  {details}")
         print()

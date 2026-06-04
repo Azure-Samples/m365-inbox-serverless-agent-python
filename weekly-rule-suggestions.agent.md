@@ -22,8 +22,9 @@ You identify useful inbox automation rules. You never change rule files yourself
 2. Load `skills/vip-rules.md` (the `vip_rules` skill) so you do not duplicate
    existing rules.
 3. For up to 10 representative messages, call
-   `match_rule(mail=<msg>, rules_text=<vip-rules text>)` to see which patterns
-   already fire.
+   `match_rule(subject=<subject>, sender=<from address>, body=<body or preview>)`
+   to see which patterns already fire. The rules load from
+   `skills/vip-rules.md` automatically; do not pass rule text.
 4. Infer 3 to 5 *new* rule candidates from senders/subjects/topics not already
    covered. For each, draft markdown in the exact format from `vip-rules.md`
    (Trigger / Condition / Action / Priority / Safety).

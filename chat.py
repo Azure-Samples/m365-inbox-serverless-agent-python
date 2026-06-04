@@ -394,13 +394,111 @@ def _post_chat(agent_name: str, prompt: str) -> dict:
         return {"response": raw, "tool_calls": []}
 
 
+def _dict_is_error(d: dict) -> bool:
+    """True if a JSON object looks like a connector/HTTP error envelope.
+
+    Recognizes the common shapes without scanning business content:
+      {"error": {...}} / {"Error": "..."}        (Graph / connector standard)
+      {"statusCode": 4xx|5xx, ...}               (Logic Apps HTTP envelope)
+      {"status": "Failed"|"Error"}
+      {"code": "ErrorInvalidRecipients", "message": ...}  (error-like code)
+      {"body": <nested envelope>}                (transport wraps the real error)
+    A falsy "error" (null / "" / {}) is NOT a failure.
+    """
+    err = d.get("error") or d.get("Error")
+    if isinstance(err, dict):
+        if err.get("code") or err.get("message") or err:
+            return True
+    elif isinstance(err, str):
+        if err.strip():
+            return True
+    elif err:
+        return True
+
+    status = d.get("status") or d.get("Status")
+    if isinstance(status, str) and status.strip().lower() in {"failed", "error"}:
+        return True
+
+    code = d.get("statusCode") or d.get("StatusCode")
+    if isinstance(code, int) and code >= 400:
+        return True
+
+    api_code = d.get("code") or d.get("Code")
+    message = d.get("message") or d.get("Message")
+    if isinstance(api_code, str) and message and re.search(
+        r"error|invalid|unauthor|forbidden|denied|badrequest|notfound|failed|fault",
+        api_code,
+        re.IGNORECASE,
+    ):
+        return True
+
+    body = d.get("body")
+    if isinstance(body, str):
+        body = body.strip()
+        try:
+            body = json.loads(body) if body else None
+        except (json.JSONDecodeError, ValueError):
+            body = None
+    if isinstance(body, dict):
+        return _dict_is_error(body)
+
+    return False
+
+
 def _tool_failed(call: dict) -> bool:
-    """Best-effort detection of a failed tool call from its recorded result."""
+    """Detect a failed tool call from its recorded result.
+
+    The runtime records the raw connector result with no success/error flag, so
+    we infer failure structurally. A successful read (office365_GetEmailsV3)
+    returns a JSON envelope like {"value": [...emails...]}, and real email
+    subjects/bodies routinely contain words like "error" or "failed" (build
+    alerts, incident notices). Scanning that content for keywords produced false
+    "N failed" reports, so we never keyword-scan a successful JSON payload.
+
+    Rules:
+      - empty / None result  -> success (e.g. SendEmailV2 returns no body)
+      - JSON object           -> failure only if it is an error envelope
+        (see _dict_is_error); a {"value": [...]} read is always success
+      - JSON array            -> success
+      - non-JSON string       -> failure only if it looks like a bare connector
+        or runtime error message (never email content, which is always JSON)
+    """
     result = call.get("result")
     if result is None:
         return False
-    text = result if isinstance(result, str) else json.dumps(result)
-    return bool(re.search(r"\b(error|failed|exception|forbidden|unauthorized|invalidrecipient)\b", text, re.IGNORECASE))
+
+    parsed = result if isinstance(result, (dict, list)) else None
+    text = ""
+    if parsed is None and isinstance(result, str):
+        text = result.strip()
+        if not text:
+            return False
+        try:
+            parsed = json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            parsed = None
+
+    if isinstance(parsed, dict):
+        return _dict_is_error(parsed)
+    if isinstance(parsed, list):
+        return False
+
+    # Bare (non-JSON) string: a connector/runtime error message, not email body.
+    if re.match(
+        r"^(error|exception|traceback|unauthorized|forbidden|invalidrecipient|fault|"
+        r"system\.\w|microsoft\.\w)",
+        text,
+        re.IGNORECASE,
+    ):
+        return True
+    return bool(re.search(
+        r"maximum consecutive function call errors"
+        r"|(action|request|operation|tool call)[^.\n]{0,80}\bfailed\b"
+        r"|response status code[^.\n]{0,40}\b[45]\d\d\b"
+        r"|\b[45]\d\d\s+(unauthorized|forbidden|bad request|internal server error)",
+        text,
+        re.IGNORECASE,
+    ))
 
 
 def _render_result(agent_name: str, result: dict, elapsed: float) -> None:

@@ -71,9 +71,27 @@ def _log_byte_size() -> int:
 
 
 def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None:
+    is_live = mode_icon == "🟢"
+    is_partial = mode_icon == "🟡" and "Partial" in mode_label
+
+    if is_partial:
+        print(f"\n⚠ Skipped: {agent_name} would silently no-op in partial mode.")
+        print("  OUTLOOK_MCP_ENDPOINT is wired to real M365, but MAILBOX_OWNER_EMAIL is still")
+        print("  a placeholder, so the agent would address SendEmail to '<your-mailbox@example.com>'")
+        print("  and nothing would arrive in your inbox.")
+        print()
+        print("  Fix:")
+        print("    1. Edit local.settings.json: set MAILBOX_OWNER_EMAIL to your real address.")
+        print("    2. Ctrl-C the `uv run func start` window and restart it.")
+        print()
+        answer = input("  Trigger anyway? (y/N): ").strip().lower()
+        if answer != "y":
+            print()
+            return
+        print()
+
     log_offset = _log_byte_size()
     files_before = _snapshot_out()
-    is_live = mode_icon == "🟢"
 
     payload = {"input": json.dumps({"source": "chat.py", "mode": "live" if is_live else "sample-data"})}
     data = json.dumps(payload).encode("utf-8")
@@ -140,10 +158,9 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
         if is_live:
             print("  (Live mode: actions go to real Outlook/Teams, not read-log.txt.")
             print("   Check the `func start` window for [TOOL] entries, or your inbox/Teams channel.)")
-        elif "Partial" in mode_label:
-            print("  (Partial mode: the function host called real M365 connectors, but the agent")
-            print(f"   addressed mail to the placeholder MAILBOX_OWNER_EMAIL ({mode_label.split('(')[-1].rstrip(')')}).")
-            print("   Set it to your real address in local.settings.json, then restart `uv run func start`.)")
+        elif is_partial:
+            print("  (Forced through in partial mode: real connector calls used placeholder")
+            print("   recipients, so nothing arrives. See the `Skipped` reason above to fix.)")
         else:
             print("  (Agent ran but produced no actions or files. Check the func start log for [TOOL] entries.)")
     print()

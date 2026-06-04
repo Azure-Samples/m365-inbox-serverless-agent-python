@@ -6,6 +6,8 @@ trigger:
   args: {}
 timeout: 1800
 mcp: true
+builtin_endpoints:
+  chat_api: true
 metadata:
   scenario: "inbox-triage"
   emoji: "📨"

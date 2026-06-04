@@ -6,6 +6,8 @@ trigger:
   args:
     schedule: "0 0 8 * * 1-5"
 mcp: true
+builtin_endpoints:
+  chat_api: true
 metadata:
   scenario: "daily-briefing"
   emoji: "📋"

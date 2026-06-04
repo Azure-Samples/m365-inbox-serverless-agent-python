@@ -1,11 +1,13 @@
 """Local test client for the M365 Inbox Agent function app.
 
-Triggers an agent via the Functions admin endpoint, then polls
-`out/read-log.txt` for new entries so you can see what the agent actually
-did (tool calls, files written) without staring at the host log.
+Calls each agent's built-in synchronous chat endpoint
+(`POST /api/agents/<agent>/chat`, enabled by `builtin_endpoints.chat_api`
+in the .agent.md frontmatter), then prints exactly what the agent did:
+every tool call it made and its final one-line summary. No log scraping.
 
 Shows a mode banner at the top: 🟢 Live (real Outlook/Teams MCP endpoints
-configured in local.settings.json) vs 🟡 Offline (sample-data fallback).
+configured in local.settings.json) vs 🟡 Partial (Outlook wired but mailbox
+is a placeholder) vs 🟡 Offline (sample-data fallback).
 """
 
 import json
@@ -19,8 +21,7 @@ from pathlib import Path
 BASE_URL = os.environ.get("AGENT_URL", "http://localhost:7071").rstrip("/")
 FUNCTION_KEY = os.environ.get("FUNCTION_KEY", "")
 LOG_PATH = Path(os.environ.get("ACTION_LOG_PATH", "out/read-log.txt"))
-OUT_DIR = Path(os.environ.get("OUT_DIR", "out"))
-POLL_TIMEOUT_SEC = int(os.environ.get("POLL_TIMEOUT_SEC", "60"))
+CHAT_TIMEOUT_SEC = int(os.environ.get("CHAT_TIMEOUT_SEC", "180"))
 SETTINGS_PATH = Path(os.environ.get("LOCAL_SETTINGS_PATH", "local.settings.json"))
 SAMPLE_INBOX_DIR = Path(os.environ.get("SAMPLE_INBOX_DIR", "sample-data/inbox"))
 
@@ -101,108 +102,222 @@ def detect_mode() -> tuple[str, str]:
     return ("🟡", "Offline (sample-data + out/read-log.txt)")
 
 
-def admin_url(agent_name: str) -> str:
-    url = f"{BASE_URL}/admin/functions/{agent_name}"
+def _mailbox_owner() -> str | None:
+    """Return a real MAILBOX_OWNER_EMAIL if set, else None."""
+    values = _read_local_settings()
+    mailbox = values.get("MAILBOX_OWNER_EMAIL") or os.environ.get("MAILBOX_OWNER_EMAIL") or ""
+    return None if _is_placeholder(mailbox) else mailbox.strip()
+
+
+def chat_url(agent_name: str) -> str:
+    url = f"{BASE_URL}/api/agents/{agent_name}/chat"
     if FUNCTION_KEY:
         url += f"?code={FUNCTION_KEY}"
     return url
 
 
-def _snapshot_out() -> set[str]:
-    """Return relative paths of files currently in out/."""
-    if not OUT_DIR.exists():
-        return set()
-    return {str(p.relative_to(OUT_DIR)) for p in OUT_DIR.rglob("*") if p.is_file()}
-
-
-def _log_byte_size() -> int:
-    return LOG_PATH.stat().st_size if LOG_PATH.exists() else 0
-
-
 _TEAMS_TRIGGERING_RX = re.compile(r"urgent|p1\b|incident|escalat|outage", re.IGNORECASE)
+_SKIP_RX = re.compile(r"^\s*fyi\b|newsletter", re.IGNORECASE)
 
 
-def _sample_onnewemail_payload(limit: int = 3, exclude_teams_triggers: bool = False) -> list[dict]:
-    """Build an OnNewEmailV3-shaped payload from sample-data/inbox/*.json.
+def _classify_subject(subject: str) -> str:
+    """Predict which branch inbox_triage will take for a given subject.
 
-    inbox_triage is a connector_trigger; firing it from the admin endpoint
-    sends no payload, so the agent has nothing to triage. We synthesize the
-    first few sample emails into the shape the agent expects ('a list of email
-    objects with fields such as Id, Subject, From, To, BodyPreview, Body,
-    Importance, HasAttachments, ConversationId').
+    Mirrors the agent's operating loop so we only send samples whose required
+    connectors are actually configured:
+      - 'teams' : urgent / P1 / incident / outage  -> posts to Teams
+      - 'skip'  : FYI / newsletter                 -> no outbound connector call
+      - 'reply' : everything else                  -> replies to the sender
+    """
+    if _TEAMS_TRIGGERING_RX.search(subject):
+        return "teams"
+    if _SKIP_RX.search(subject):
+        return "skip"
+    return "reply"
 
-    When TEAMS_* settings are placeholders, we drop emails whose subject would
-    obviously route to a Teams alert (urgent / P1 / incident / outage). Each
-    failed Teams call counts against the agent runtime's 3-error circuit
-    breaker, which would otherwise abort the run after 3 VIP-flavored samples.
+
+def _graph_to_onnewemail(graph: dict, from_override: str | None = None) -> dict:
+    """Convert a Graph-shaped sample email to the OnNewEmailV3 PascalCase shape."""
+    subject = graph.get("subject", "") or ""
+    original_from = graph.get("from", {}).get("emailAddress", {}).get("address", "")
+    to_list = graph.get("toRecipients", [])
+    body = graph.get("body", {}).get("content", "") or ""
+    return {
+        "Id": graph.get("id", ""),
+        "Subject": subject,
+        "From": from_override or original_from,
+        "To": ";".join(r.get("emailAddress", {}).get("address", "") for r in to_list),
+        "BodyPreview": body[:200],
+        "Body": body,
+        "Importance": graph.get("importance", "normal"),
+        "HasAttachments": graph.get("hasAttachments", False),
+        "ConversationId": graph.get("conversationId", graph.get("id", "")),
+    }
+
+
+def _select_samples() -> tuple[list[dict], list[str]]:
+    """Pick sample emails whose required connectors are configured.
+
+    Returns (emails, notes). A sample is only included when the agent's likely
+    branch can actually complete:
+      - reply samples require a real MAILBOX_OWNER_EMAIL. When set, we rewrite
+        the sample's From to the owner so the agent's reply (To = sender) lands
+        in the owner's own mailbox: a real, visible round-trip. When the mailbox
+        is a placeholder, reply samples are excluded so we never send to a fake
+        @example.com address (those bounce, fail 3x, and trip the agent's
+        circuit breaker).
+      - teams samples require TEAMS_TEAM_ID and TEAMS_CHANNEL_ID. When either is
+        a placeholder, they are excluded for the same reason.
+      - skip samples (FYI / newsletter) take no outbound action and are always
+        safe to send.
     """
     if not SAMPLE_INBOX_DIR.is_dir():
-        return []
+        return [], [f"  ⚠ {SAMPLE_INBOX_DIR}/ not found; sending an empty inbox."]
+
+    mailbox = _mailbox_owner()
+    _, teams_missing = _missing_for("inbox_triage")
+    teams_ok = not teams_missing
+
     emails: list[dict] = []
+    excluded_reply = 0
+    excluded_teams = 0
     for f in sorted(SAMPLE_INBOX_DIR.glob("*.json")):
         try:
             graph = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        subject = graph.get("subject", "") or ""
-        if exclude_teams_triggers and _TEAMS_TRIGGERING_RX.search(subject):
+        category = _classify_subject(graph.get("subject", "") or "")
+        if category == "teams" and not teams_ok:
+            excluded_teams += 1
             continue
-        from_addr = graph.get("from", {}).get("emailAddress", {})
-        to_list = graph.get("toRecipients", [])
-        body = graph.get("body", {}).get("content", "") or ""
-        emails.append({
-            "Id": graph.get("id", ""),
-            "Subject": subject,
-            "From": from_addr.get("address", ""),
-            "To": ";".join(r.get("emailAddress", {}).get("address", "") for r in to_list),
-            "BodyPreview": body[:200],
-            "Body": body,
-            "Importance": graph.get("importance", "normal"),
-            "HasAttachments": graph.get("hasAttachments", False),
-            "ConversationId": graph.get("conversationId", graph.get("id", "")),
-        })
-        if len(emails) >= limit:
-            break
-    return emails
+        if category == "reply" and not mailbox:
+            excluded_reply += 1
+            continue
+        from_override = mailbox if (category == "reply" and mailbox) else None
+        emails.append(_graph_to_onnewemail(graph, from_override=from_override))
 
-
-def _build_input(agent_name: str, is_live: bool) -> tuple[str, str]:
-    """Return (input_payload_json_string, hint_for_user).
-
-    inbox_triage gets a synthesized sample-inbox payload so the agent has
-    something to triage when run from the admin endpoint. Other agents get a
-    small marker so the func host trace shows where the run came from.
-    """
-    if agent_name == "inbox_triage":
-        _, teams_missing = _missing_for("inbox_triage")
-        exclude_teams = bool(teams_missing)
-        emails = _sample_onnewemail_payload(limit=3, exclude_teams_triggers=exclude_teams)
-        if emails:
-            subjects = ", ".join(repr(e["Subject"][:48]) for e in emails)
-            if exclude_teams:
-                hint = (
-                    f"  Sending {len(emails)} non-Teams-triggering sample email(s) from {SAMPLE_INBOX_DIR}/:\n"
-                    f"    {subjects}\n"
-                    "    (VIP / urgent / incident samples skipped: with TEAMS_* placeholders, each\n"
-                    "    Teams call would fail and trip the agent's 3-error circuit breaker.)"
-                )
-            else:
-                hint = f"  Sending {len(emails)} sample email(s) as the OnNewEmailV3 payload (from {SAMPLE_INBOX_DIR}/)."
-            return json.dumps(emails), hint
-        hint = (
-            "  ⚠ No sample emails to send (sample-data/inbox/ is empty, or every sample matched\n"
-            "    a Teams-triggering filter). inbox_triage will receive an empty payload and\n"
-            "    report 'Processed 0 messages'."
+    notes: list[str] = []
+    if emails:
+        listed = "\n".join(
+            f"    - {e['Subject'][:60]}  ({_classify_subject(e['Subject'])})" for e in emails
         )
-        return json.dumps([]), hint
-    return (
-        json.dumps({"source": "chat.py", "mode": "live" if is_live else "sample-data"}),
-        "",
+        notes.append(f"  Sending {len(emails)} sample email(s) as the OnNewEmailV3 payload:")
+        notes.append(listed)
+    else:
+        notes.append("  No safe samples to send for the current config (see exclusions below).")
+    if excluded_reply:
+        notes.append(
+            f"  Skipped {excluded_reply} reply sample(s): MAILBOX_OWNER_EMAIL is a placeholder, so a\n"
+            "    reply would be sent to a fake address, bounce, and trip the agent's circuit breaker.\n"
+            "    Set a real MAILBOX_OWNER_EMAIL to have the agent reply into your own inbox."
+        )
+    if excluded_teams:
+        notes.append(
+            f"  Skipped {excluded_teams} Teams sample(s): TEAMS_TEAM_ID / TEAMS_CHANNEL_ID is a placeholder.\n"
+            "    Set both to have the agent post urgent items to your channel."
+        )
+    return emails, notes
+
+
+def _build_prompt(agent_name: str) -> tuple[str, list[str]]:
+    """Return (prompt, notes) for the /chat call."""
+    if agent_name == "inbox_triage":
+        emails, notes = _select_samples()
+        prompt = (
+            "A new batch of email arrived in the mailbox.\n\n"
+            "Trigger data:\n"
+            "```json\n"
+            f"{json.dumps(emails, indent=2)}\n"
+            "```\n\n"
+            "Run your operating loop for every message and end with the one-line summary."
+        )
+        return prompt, notes
+    if agent_name == "daily_briefing":
+        return ("Run today's daily inbox briefing now, following your required steps.", [])
+    if agent_name == "weekly_rule_suggestions":
+        return (
+            "Review this week's inbox activity now and email your VIP rule suggestions, "
+            "following your required steps.",
+            [],
+        )
+    return ("Run now.", [])
+
+
+def _post_chat(agent_name: str, prompt: str) -> dict:
+    """POST to the agent's built-in /chat endpoint and return the parsed result.
+
+    Returns the runtime's JSON: {session_id, response, tool_calls}. The call is
+    synchronous: it blocks until the agent finishes, so the result reflects every
+    tool the agent actually ran.
+    """
+    data = json.dumps({"prompt": prompt}).encode("utf-8")
+    req = urllib.request.Request(
+        chat_url(agent_name),
+        data=data,
+        method="POST",
+        headers={"Content-Type": "application/json"},
     )
+    with urllib.request.urlopen(req, timeout=CHAT_TIMEOUT_SEC) as response:
+        raw = response.read().decode("utf-8", errors="replace")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return {"response": raw, "tool_calls": []}
+
+
+def _tool_failed(call: dict) -> bool:
+    """Best-effort detection of a failed tool call from its recorded result."""
+    result = call.get("result")
+    if result is None:
+        return False
+    text = result if isinstance(result, str) else json.dumps(result)
+    return bool(re.search(r"\b(error|failed|exception|forbidden|unauthorized|invalidrecipient)\b", text, re.IGNORECASE))
+
+
+def _render_result(agent_name: str, result: dict, elapsed: float, forced_through_partial: bool) -> None:
+    """Print exactly what the agent did: tool calls grouped by name, then its summary."""
+    tool_calls = result.get("tool_calls") or []
+    response_text = (result.get("response") or "").strip()
+
+    print(f"\n✔ Done ({elapsed:0.1f}s).")
+
+    if tool_calls:
+        counts: dict[str, list[int]] = {}
+        for call in tool_calls:
+            name = call.get("tool_name") or "(unknown)"
+            ok, fail = counts.setdefault(name, [0, 0])
+            if _tool_failed(call):
+                counts[name][1] += 1
+            else:
+                counts[name][0] += 1
+        print(f"  Tool calls ({len(tool_calls)} total):")
+        for name, (ok, fail) in counts.items():
+            suffix = f", {fail} failed" if fail else ""
+            print(f"    - {name} ×{ok + fail}{suffix}")
+        any_fail = any(fail for _, (ok, fail) in counts.items())
+    else:
+        print("  Tool calls: none.")
+        any_fail = False
+
+    if response_text:
+        print("\n  Agent summary:")
+        for line in response_text.splitlines() or [response_text]:
+            print(f"    {line}")
+
+    breaker = re.search(r"maximum consecutive function call errors", response_text, re.IGNORECASE)
+    if breaker or any_fail:
+        print("\n  ⚠ Some tool calls failed. Common causes:")
+        print("    - reply/briefing sent to a placeholder recipient (set MAILBOX_OWNER_EMAIL)")
+        print("    - Teams post with empty TEAMS_TEAM_ID / TEAMS_CHANNEL_ID")
+        print("    - 3 consecutive failures trip the runtime's circuit breaker, which")
+        print("      stops further tool calls but still returns a (partial) summary.")
+        print("    Run `uv run func start --verbose` to see the exact connector error.")
+    if forced_through_partial and not any_fail:
+        print("\n  Note: you forced through with a placeholder recipient; delivery is a no-op.")
+    print()
 
 
 def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None:
-    is_live = mode_icon == "🟢"
     is_offline = mode_icon == "🟡" and "Offline" in mode_label
     forced_through_partial = False
 
@@ -227,104 +342,42 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
                 return
             forced_through_partial = True
             print()
-        elif conditional_missing:
+        elif conditional_missing and agent_name != "inbox_triage":
             names = ", ".join(conditional_missing)
             print(f"\nℹ Note: {agent_name} will run, but {names} is a placeholder.")
             print(f"  Any branch that needs it ({DEP_PURPOSE.get(conditional_missing[0], 'optional path')})")
             print("  will silently no-op. Other actions still work.")
             print()
 
-    log_offset = _log_byte_size()
-    files_before = _snapshot_out()
+    prompt, notes = _build_prompt(agent_name)
+    for line in notes:
+        print(line)
+    if notes:
+        print()
 
-    input_str, input_hint = _build_input(agent_name, is_live)
-    payload = {"input": input_str}
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        admin_url(agent_name),
-        data=data,
-        method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-
+    print(f"→ Calling {agent_name} /chat (synchronous, up to {CHAT_TIMEOUT_SEC}s)…")
     start = time.monotonic()
     try:
-        with urllib.request.urlopen(req, timeout=30) as response:
-            print(f"\n→ Triggered {agent_name} (HTTP {response.status}). Waiting for activity (up to {POLL_TIMEOUT_SEC}s)…")
-            if input_hint:
-                print(input_hint)
-            if is_live:
-                print("  Live mode: action goes to real Outlook/Teams. Watch the `func start` terminal for the agent's trace.")
-            print()
+        result = _post_chat(agent_name, prompt)
     except urllib.error.HTTPError as exc:
         details = exc.read().decode("utf-8", errors="replace").strip()
-        print(f"\nError triggering {agent_name}: HTTP {exc.code}")
+        print(f"\nError calling {agent_name} /chat: HTTP {exc.code}")
+        if exc.code == 404:
+            print("  The /chat endpoint is not registered. Add this to the agent's .agent.md")
+            print("  frontmatter, then restart `uv run func start`:")
+            print("      builtin_endpoints:")
+            print("        chat_api: true")
         if details:
-            print(details)
-        print("Is the Functions host running with `uv run func start`?\n")
+            print(f"  {details}")
+        print()
         return
     except Exception as exc:
-        print(f"\nError triggering {agent_name}: {exc}")
-        print("Start the local host with `uv run func start`, then try again.\n")
+        print(f"\nError calling {agent_name} /chat: {exc}")
+        print("Is the Functions host running with `uv run func start`?\n")
         return
 
-    # Tail the action log for new lines + watch out/ for new files.
-    # In live mode the agent calls real MCP servers and writes nothing to
-    # read-log.txt; we still tail in case any local fallback path runs, but
-    # the authoritative trace is in the `func start` window.
-    seen_lines = 0
-    deadline = start + POLL_TIMEOUT_SEC
-    last_size = log_offset
-    idle_since = time.monotonic()
-
-    while time.monotonic() < deadline:
-        time.sleep(1.0)
-        size = _log_byte_size()
-        if size > last_size and LOG_PATH.exists():
-            with LOG_PATH.open("r", encoding="utf-8") as fh:
-                fh.seek(last_size)
-                chunk = fh.read()
-            for line in chunk.splitlines():
-                if line.strip():
-                    print(f"  ▸ {line}")
-                    seen_lines += 1
-            last_size = size
-            idle_since = time.monotonic()
-        elif seen_lines and (time.monotonic() - idle_since) > 8:
-            break
-
     elapsed = time.monotonic() - start
-    files_after = _snapshot_out()
-    new_files = sorted(files_after - files_before)
-
-    is_offline = mode_icon == "🟡" and "Offline" in (mode_label or "")
-    print(f"\n✔ Done ({elapsed:0.1f}s).")
-
-    if is_offline:
-        print(f"  Offline mode: {seen_lines} new action(s) in {LOG_PATH}; {len(new_files)} new file(s) in out/.")
-        for path in new_files:
-            size = (OUT_DIR / path).stat().st_size
-            print(f"    + out/{path} ({size}B)")
-        if seen_lines == 0 and not new_files:
-            print("  (No actions logged. Check the `func start` window for errors.)")
-    else:
-        print(f"  {mode_icon} {mode_label or 'Live'}: tool calls went to real connectors, not {LOG_PATH}.")
-        print(f"  Look at the `func start` window. Every 'Function name: <tool>' line is one")
-        print(f"  connector call the agent made. Common things to look for:")
-        print(f"    - 'Function name: match_rule' = classification step (one per email)")
-        print(f"    - 'Function name: office365_SendEmailV2' = reply or briefing email sent")
-        print(f"    - 'Function name: teams_PostMessageToChannelV3' = Teams alert posted")
-        print(f"    - 'Maximum consecutive function call errors reached (3)' = circuit breaker tripped;")
-        print(f"      the run continued but stopped calling tools. Usually means placeholder settings.")
-        if new_files:
-            print(f"  Also wrote {len(new_files)} file(s) to out/:")
-            for path in new_files:
-                size = (OUT_DIR / path).stat().st_size
-                print(f"    + out/{path} ({size}B)")
-        if forced_through_partial:
-            print(f"  Note: you forced through with placeholder settings, so any recipient-bound")
-            print(f"  call hit a fake address. Connector may have logged a send error.")
-    print()
+    _render_result(agent_name, result, elapsed, forced_through_partial)
 
 
 def show_recent_actions() -> None:

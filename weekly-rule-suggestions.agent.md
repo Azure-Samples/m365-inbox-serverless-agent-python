@@ -6,6 +6,8 @@ trigger:
   args:
     schedule: "0 0 18 * * 0"
 mcp: true
+builtin_endpoints:
+  chat_api: true
 metadata:
   scenario: "weekly-rule-suggestions"
   emoji: "🧠"

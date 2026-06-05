@@ -22,6 +22,7 @@
 | Timer is not firing | Confirm the Functions host shows the timer trigger loaded at startup. The v5 CLI starts Azurite automatically; pass `--no-azurite` only if you intentionally point `AzureWebJobsStorage` elsewhere. |
 | Local run cannot reach Azure | Leave the MCP endpoint variables blank and use `chat.py`; every agent runs DRY RUN and prints its deliverable as text. Option 4 shows what's missing to go live. |
 | Manual trigger returns 404 | Confirm the Functions host is running and agent function names are `inbox-triage`, `daily-briefing`, and `weekly-rule-suggestions`. |
+| Deploy fails: `azure-functions==2.1.0 ... No matching distribution found` | The Flex remote build is using Python 3.11.8 instead of 3.13. Use the pre-built deploy workaround in [deploy-python-313.md](deploy-python-313.md). Tracking: [Azure/azure-dev#8538](https://github.com/Azure/azure-dev/issues/8538). |
 
 > **Migrating from an earlier version?** `MAILBOX_OWNER_EMAIL` was previously `TO_EMAIL`. Run `azd env set MAILBOX_OWNER_EMAIL <value>`, then delete the old `TO_EMAIL=...` line from `.azure/<env>/.env`.
 

@@ -75,6 +75,8 @@ Want it to act on your real inbox while still local? See [Go live with real M365
 azd up
 ```
 
+> **Known issue (point-in-time):** `azd up` may currently fail at the deploy step on Python 3.13 — the Flex remote build uses Python 3.11.8 ([Azure/azure-dev#8538](https://github.com/Azure/azure-dev/issues/8538)). Simple workaround: [docs/deploy-python-313.md](docs/deploy-python-313.md). This note can be removed once the bug is fixed.
+
 Now `inbox-triage` fires automatically on every new email — no client, no waiting. Send yourself a message, then watch your Teams channel (VIP / incident) or your inbox (replies). Tail the live trace with `azd monitor --logs`.
 
 ### Clean up

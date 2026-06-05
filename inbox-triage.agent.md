@@ -73,6 +73,24 @@ The `RUN MODE` line in the prompt is authoritative:
   `"[DEMO] Re: " + original subject`, `Body` is short HTML). For **summarize**,
   take no action.
 
+## Teams alert card (escalations, HTML)
+
+When you escalate in LIVE mode, the alert's **first line** must answer *who* sent
+it and *what* the key idea is — that line is all the owner sees in the channel
+list and the push notification. Do **not** lead with the owner's name or mention.
+Use HTML (`<b>`, `<br>`, `<a href>`). There is no fixed line cap: put the
+essentials above the fold, then add detail below.
+
+    🚨 <b><sender name></b> — <the key idea in one line: the ask or what's happening><br>
+    <b>From:</b> <sender name> &lt;<sender email>&gt;<br>
+    <b>What:</b> <1–2 sentences: the request or situation, with any deadline or amount><br>
+    <b>Why flagged:</b> <the VIP / urgency reason — which rule or signal matched><br>
+    <at>$MAILBOX_OWNER_EMAIL</at>
+
+The first line must name the **sender** and the **key idea**. Always include the
+`From` line with the real sender address. Put the `<at>…</at>` mention on its own
+final line so the owner is pinged — never as the headline.
+
 ## Report format
 
 Output one block per message, in arrival order, then a final summary line. Keep
@@ -87,8 +105,9 @@ Use 🚨 for escalate, ✉️ for reply, 📄 for summarize. In DRY RUN, Status 
 `drafted` for escalate and reply, `n/a` for summarize. In LIVE, Status is
 `posted` (Teams) or `sent` (Outlook), or `n/a` for summarize.
 
-Length bounds: Why = one sentence; Teams alert = max 3 lines; reply body = max
-120 words; summary = max 25 words.
+Length bounds: Why = one sentence; reply body = max 120 words; summary = max 25
+words. The Teams alert uses the **Teams alert card** above — no fixed line cap;
+lead with the sender and the key idea, then add detail.
 
 End with one line: `Triaged N: E escalate, R reply, S summarize`.
 

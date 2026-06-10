@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 Write-Output "Microsoft 365 Inbox Agent — Teams configuration discovery"
 Write-Output "========================================================"

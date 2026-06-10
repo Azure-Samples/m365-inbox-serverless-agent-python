@@ -34,6 +34,20 @@ if (-not $envVars['FOUNDRY_MODEL']) {
     throw "FOUNDRY_MODEL missing in azd env"
 }
 
+function Get-EnvValue {
+    param(
+        [hashtable]$Map,
+        [string]$Name,
+        [string]$DefaultValue
+    )
+
+    if ($Map.ContainsKey($Name) -and $null -ne $Map[$Name] -and $Map[$Name] -ne '') {
+        return $Map[$Name]
+    }
+
+    return $DefaultValue
+}
+
 $settings = [ordered]@{
     IsEncrypted = $false
     Values = [ordered]@{
@@ -44,11 +58,11 @@ $settings = [ordered]@{
         FOUNDRY_PROJECT_ENDPOINT         = $envVars['FOUNDRY_PROJECT_ENDPOINT']
         FOUNDRY_MODEL                    = $envVars['FOUNDRY_MODEL']
 
-        MAILBOX_OWNER_EMAIL                         = ($envVars['MAILBOX_OWNER_EMAIL']            ?? '<your-mailbox@example.com>')
-        OUTLOOK_MCP_ENDPOINT             = ($envVars['OUTLOOK_MCP_ENDPOINT'] ?? '')
-        TEAMS_MCP_ENDPOINT               = ($envVars['TEAMS_MCP_ENDPOINT']   ?? '')
-        TEAMS_TEAM_ID                    = ($envVars['TEAMS_TEAM_ID']        ?? '')
-        TEAMS_CHANNEL_ID                 = ($envVars['TEAMS_CHANNEL_ID']     ?? '')
+        MAILBOX_OWNER_EMAIL              = (Get-EnvValue -Map $envVars -Name 'MAILBOX_OWNER_EMAIL' -DefaultValue '<your-mailbox@example.com>')
+        OUTLOOK_MCP_ENDPOINT             = (Get-EnvValue -Map $envVars -Name 'OUTLOOK_MCP_ENDPOINT' -DefaultValue '')
+        TEAMS_MCP_ENDPOINT               = (Get-EnvValue -Map $envVars -Name 'TEAMS_MCP_ENDPOINT' -DefaultValue '')
+        TEAMS_TEAM_ID                    = (Get-EnvValue -Map $envVars -Name 'TEAMS_TEAM_ID' -DefaultValue '')
+        TEAMS_CHANNEL_ID                 = (Get-EnvValue -Map $envVars -Name 'TEAMS_CHANNEL_ID' -DefaultValue '')
     }
 }
 

@@ -54,14 +54,14 @@ CHAT_AGENT = ("inbox_chat", "inbox-chat", "Chat with your inbox (read-only Q&A o
 # (mcp: false); chat.py performs the read client-side and fail-closes here so a
 # bug or a tampered mcp.json can never turn this read path into a write path.
 ALLOWED_READ_OP = "office365_GetEmailsV3"
-INBOX_CHAT_TOP = 5
+INBOX_CHAT_TOP = int(os.environ.get("INBOX_CHAT_TOP", "5"))
 PREVIEW_CHARS = 280
 
 def _read_local_settings() -> dict[str, str]:
     if not SETTINGS_PATH.exists():
         return {}
     try:
-        data = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+        data = json.loads(SETTINGS_PATH.read_text(encoding="utf-8-sig"))
     except (OSError, json.JSONDecodeError):
         return {}
     values = data.get("Values") or {}

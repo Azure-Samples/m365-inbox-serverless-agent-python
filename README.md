@@ -24,9 +24,16 @@ Run it locally in minutes against sample data, point it at your real inbox, then
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/).
 - An Azure subscription. `azd provision` (Quickstart step 2) creates the Microsoft Foundry model deployment the agents need — required even for the offline path.
 - For real M365 (or `azd up`): permission to authorize Microsoft 365 connectors, plus the `connector-namespace` CLI extension:
-  ```bash
-  curl -fsSL https://aka.ms/connector-namespace-cli-install | sh
-  ```
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://aka.ms/connector-namespace-cli-install | sh
+```
+
+**Windows:**
+```powershell
+powershell -Command "Invoke-WebRequest -Uri 'https://aka.ms/connector-namespace-cli-install' -OutFile 'install.sh'; wsl bash install.sh"
+```
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Rocket/SVG/ic_fluent_rocket_24_regular.svg" width="20" align="center"> Quickstart
 
@@ -34,23 +41,35 @@ Five steps: install, get resources, run locally, try it, deploy.
 
 ### 1. Install the tools
 
+**macOS:**
 ```bash
 brew tap azure/functions
 brew install azure-functions-core-tools@4
-brew install azure-dev   # azd
+brew install azure-dev
 npm install -g azurite
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-> Linux / Windows / WSL: use the [Core Tools v4 install guide](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools), [azd install guide](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd), [Azurite install guide](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite), and [uv install guide](https://docs.astral.sh/uv/getting-started/installation/).
+**Linux / Windows / WSL:**
+Use the [Core Tools v4 install guide](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools), [azd install guide](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd), [Azurite install guide](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite), and [uv install guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+**Windows (native):**
+Use the native installers for [Azure Functions Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools), [azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd), [Azurite](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite), and [uv](https://docs.astral.sh/uv/getting-started/installation/). Then run: `npm install -g azurite`
 
 ### 2. Get the resources you need
 
 `azd provision` creates the Foundry model deployment the agents require (needed even offline); `hydrate` copies the settings into `local.settings.json`. No API keys — managed identity throughout.
 
+**macOS / Linux:**
 ```bash
 azd provision
 ./infra/scripts/hydrate-local-settings.sh
+```
+
+**Windows:**
+```powershell
+azd provision
+.\infra\scripts\hydrate-local-settings.ps1
 ```
 
 > Yes — even the offline, sample-data run needs this one-time `azd provision`, because the agents call a Foundry model. It provisions the model deployment only; it never touches your inbox.
@@ -59,9 +78,11 @@ azd provision
 
 ```bash
 azurite --silent --location .azurite   # terminal A
-uv run func start                      # terminal B
+uv run func start                       # terminal B
 uv run python chat.py                  # terminal C
 ```
+
+(These commands work identically on macOS, Linux, and Windows.)
 
 ### 4. Try it (offline, safe)
 

@@ -53,9 +53,6 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 **Linux / Windows / WSL:**
 Use the [Core Tools v4 install guide](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools), [azd install guide](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd), [Azurite install guide](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite), and [uv install guide](https://docs.astral.sh/uv/getting-started/installation/).
 
-**Windows (native):**
-Use the native installers for [Azure Functions Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools), [azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd), [Azurite](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite), and [uv](https://docs.astral.sh/uv/getting-started/installation/). Then run: `npm install -g azurite`
-
 ### 2. Get the resources you need
 
 `azd provision` creates the Foundry model deployment the agents require (needed even offline); `hydrate` copies the settings into `local.settings.json`. No API keys — managed identity throughout.

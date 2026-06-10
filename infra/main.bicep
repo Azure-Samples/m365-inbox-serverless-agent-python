@@ -227,7 +227,7 @@ module api './app/api.bicep' = {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     appServicePlanId: appServicePlan.outputs.resourceId
     runtimeName: 'python'
-    runtimeVersion: '3.11'
+    runtimeVersion: '3.13'
     storageAccountName: storage.outputs.name
     deploymentStorageContainerName: deploymentStorageContainerName
     identityId: apiUserAssignedIdentity.outputs.resourceId

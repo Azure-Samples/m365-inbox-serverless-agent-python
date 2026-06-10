@@ -74,8 +74,8 @@ azd provision
 ### 3. Run the local client
 
 ```bash
-azurite --silent --location .azurite   # terminal A
-uv run func start                       # terminal B
+azurite --silent --skipApiVersionCheck --location .azurite   # terminal A
+uv run func start                      # terminal B
 uv run python chat.py                  # terminal C
 ```
 

@@ -1,4 +1,4 @@
-# Post-deployment: create Office 365 OnNewEmail connector trigger configuration
+﻿# Post-deployment: create Office 365 OnNewEmail connector trigger configuration
 # pointing at the Inbox Triage agent function, then walk the operator through
 # OAuth consent for the Office 365 Outlook connection.
 #

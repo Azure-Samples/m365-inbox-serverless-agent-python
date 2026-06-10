@@ -1,4 +1,4 @@
-# One-time OAuth consent for the Office 365 Outlook (and optional Teams) MCP
+﻿# One-time OAuth consent for the Office 365 Outlook (and optional Teams) MCP
 # connections created by `azd provision`. Opens a browser tab for each
 # connection and polls until the connector namespace reports `Connected`.
 #
@@ -43,7 +43,13 @@ function Authorize-Connection {
     }
 
     $params = '[{"parameterName":"token","redirectUrl":"https://portal.azure.com"}]'
-    $consentJson = az connector-namespace connection list-consent-links -g $resourceGroup --namespace $connectorGateway --connection-name $ConnectionName --parameters $params -o json 2>$null | ConvertFrom-Json
+    $paramsFile = New-TemporaryFile
+    Set-Content -Path $paramsFile -Value $params -Encoding ascii
+    try {
+        $consentJson = az connector-namespace connection list-consent-links -g $resourceGroup --namespace $connectorGateway --connection-name $ConnectionName --parameters "@$($paramsFile.FullName)" -o json 2>$null | ConvertFrom-Json
+    } finally {
+        Remove-Item $paramsFile -ErrorAction SilentlyContinue
+    }
     $link = $consentJson.value[0].link
     if (-not $link) {
         Write-Host "   could not get consent link; skipping." -ForegroundColor Red

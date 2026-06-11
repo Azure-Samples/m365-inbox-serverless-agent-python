@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv
+.vscode
+__pycache__
+local.settings.json
+.azure
+tmp
+out
+.ruff_cache
+.pytest_cache
+.DS_Store

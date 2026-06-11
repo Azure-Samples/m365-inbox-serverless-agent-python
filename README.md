@@ -81,6 +81,8 @@ uv run python chat.py                  # terminal C
 
 (These commands work identically on macOS, Linux, and Windows.)
 
+> 🪟 **Windows local dev:** If `uv run func start` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix — you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
+
 ### 4. Try it (offline, safe)
 
 Pick **1**, **2**, or **3**. The client shows a 🟡 Offline banner and runs every agent in **DRY RUN** against `sample-data/inbox/*.json`: it produces the full deliverable as text and calls no connector, so nothing is ever sent. Pick **5** to chat with the sample inbox.

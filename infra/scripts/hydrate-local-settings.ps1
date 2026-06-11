@@ -48,22 +48,32 @@ function Get-EnvValue {
     return $DefaultValue
 }
 
+$values = [ordered]@{
+    AzureWebJobsStorage              = 'UseDevelopmentStorage=true'
+    FUNCTIONS_WORKER_RUNTIME         = 'python'
+
+    AZURE_FUNCTIONS_AGENTS_PROVIDER  = 'foundry'
+    FOUNDRY_PROJECT_ENDPOINT         = $envVars['FOUNDRY_PROJECT_ENDPOINT']
+    FOUNDRY_MODEL                    = $envVars['FOUNDRY_MODEL']
+
+    MAILBOX_OWNER_EMAIL              = (Get-EnvValue -Map $envVars -Name 'MAILBOX_OWNER_EMAIL' -DefaultValue '<your-mailbox@example.com>')
+    OUTLOOK_MCP_ENDPOINT             = (Get-EnvValue -Map $envVars -Name 'OUTLOOK_MCP_ENDPOINT' -DefaultValue '')
+    TEAMS_MCP_ENDPOINT               = (Get-EnvValue -Map $envVars -Name 'TEAMS_MCP_ENDPOINT' -DefaultValue '')
+    TEAMS_TEAM_ID                    = (Get-EnvValue -Map $envVars -Name 'TEAMS_TEAM_ID' -DefaultValue '')
+    TEAMS_CHANNEL_ID                 = (Get-EnvValue -Map $envVars -Name 'TEAMS_CHANNEL_ID' -DefaultValue '')
+}
+
+# Windows: also set the Python worker path so func picks the venv Python, not the Microsoft Store Python stub
+if ($IsWindows -or [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)) {
+    $venvPython = Join-Path $PSScriptRoot "..\..\.venv\Scripts\python.exe" -Resolve -ErrorAction SilentlyContinue
+    if ($venvPython -and (Test-Path $venvPython)) {
+        $values['languageWorkers__python__defaultExecutablePath'] = $venvPython
+    }
+}
+
 $settings = [ordered]@{
     IsEncrypted = $false
-    Values = [ordered]@{
-        AzureWebJobsStorage              = 'UseDevelopmentStorage=true'
-        FUNCTIONS_WORKER_RUNTIME         = 'python'
-
-        AZURE_FUNCTIONS_AGENTS_PROVIDER  = 'foundry'
-        FOUNDRY_PROJECT_ENDPOINT         = $envVars['FOUNDRY_PROJECT_ENDPOINT']
-        FOUNDRY_MODEL                    = $envVars['FOUNDRY_MODEL']
-
-        MAILBOX_OWNER_EMAIL              = (Get-EnvValue -Map $envVars -Name 'MAILBOX_OWNER_EMAIL' -DefaultValue '<your-mailbox@example.com>')
-        OUTLOOK_MCP_ENDPOINT             = (Get-EnvValue -Map $envVars -Name 'OUTLOOK_MCP_ENDPOINT' -DefaultValue '')
-        TEAMS_MCP_ENDPOINT               = (Get-EnvValue -Map $envVars -Name 'TEAMS_MCP_ENDPOINT' -DefaultValue '')
-        TEAMS_TEAM_ID                    = (Get-EnvValue -Map $envVars -Name 'TEAMS_TEAM_ID' -DefaultValue '')
-        TEAMS_CHANNEL_ID                 = (Get-EnvValue -Map $envVars -Name 'TEAMS_CHANNEL_ID' -DefaultValue '')
-    }
+    Values = $values
 }
 
 $settings | ConvertTo-Json -Depth 5 | Set-Content -Path local.settings.json -Encoding UTF8

@@ -13,6 +13,54 @@
 - **Live mode: agent returns `could not read inbox`**. The Outlook connection has not completed OAuth consent (its status is not `Connected`). Run `./infra/scripts/authorize-connectors.sh`, finish the browser consent as the mailbox owner, wait for `Connected`, then retry. This is a one-time step per connection; env vars alone do not authorize it.
 - **Windows PowerShell hydrate**. Use `pwsh -File ./infra/scripts/hydrate-local-settings.ps1` (skips ExecutionPolicy without `Set-ExecutionPolicy`).
 
+## Windows local dev
+
+**Symptom:** `uv run func start` or `func start` fails with:
+```
+ModuleNotFoundError: No module named 'azure_functions_agents'
+```
+or
+```
+ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'
+```
+
+**Root cause:** Windows ships Microsoft Store Python by default. When you install Python 3.13 and create a venv, the `func` host scans for Python workers on `PATH` and finds the Store Python 3.11 stub first at `%LocalAppData%\Microsoft\WindowsApps\python.exe`. It then loads the 3.11 worker, which can't import 3.13 venv packages. You need to remove the Store Python and disable its App execution aliases.
+
+**Fix — step by step:**
+
+1. **Remove Microsoft Store Python 3.11:**
+
+   Open PowerShell as Administrator and run:
+   ```powershell
+   Get-AppxPackage -Name "PythonSoftwareFoundation.Python.3.11" | Remove-AppxPackage
+   ```
+
+2. **Disable App execution aliases:**
+
+   - Open Windows Settings → **Apps** → **Advanced app settings** → **App execution aliases**
+   - Scroll down to the **App Installer** section
+   - Toggle **OFF** all of:
+     - `python.exe`
+     - `python3.exe`
+     - `python3.11.exe`
+
+3. **Verify:**
+
+   Open a fresh PowerShell and confirm the Store Python is gone:
+   ```powershell
+   where.exe python
+   ```
+   This should return **nothing** (no output). If it returns a path in `WindowsApps`, the alias is still on.
+
+4. **Retry:**
+   ```powershell
+   uv run func start
+   ```
+
+**Note on `hydrate-local-settings.ps1`:** The provisioning script can also set `languageWorkers__python__defaultExecutablePath` to point at your venv Python, which helps — but this mitigation is **not sufficient alone**. The OS-level `PATH` search still happens first, so you must still remove the Store Python and disable aliases. Both steps together ensure the 3.13 worker loads correctly.
+
+**If the issue persists:** Confirm your venv is using Python 3.13 with `uv python --version`. You must have Python 3.13+ installed locally (via `uv python install 3.13` or direct download) and a fresh venv created with `uv sync` after removing Store Python.
+
 ## Deployed / connectors
 
 | Symptom | Try this |

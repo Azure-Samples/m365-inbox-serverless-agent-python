@@ -46,23 +46,38 @@ $operationName = "OnNewEmailV3"
 $triggerName   = "$outlookConnection-onnewemail"
 $callbackUrl   = "https://$functionAppName.azurewebsites.net/runtime/webhooks/connector?functionName=$functionName&code=$connectorKey"
 
-$connectionDetails  = (@{ connectorName = "office365"; connectionName = $outlookConnection } | ConvertTo-Json -Compress)
-$notificationDetails = (@{ callbackUrl = $callbackUrl; httpMethod = "Post" } | ConvertTo-Json -Compress)
+$connectionDetails  = @{ connectorName = "office365"; connectionName = $outlookConnection } | ConvertTo-Json -Compress
+$notificationDetails = @{ callbackUrl = $callbackUrl; httpMethod = "Post" } | ConvertTo-Json -Compress
 $parameters = '[{"name":"folderPath","value":"Inbox"}]'
 
 Write-Host "Creating trigger '$triggerName' for $operationName -> $functionName..." -ForegroundColor Yellow
 az connector-namespace trigger delete -g $resourceGroup --namespace $connectorGateway -n $triggerName --yes 2>$null | Out-Null
 
-az connector-namespace trigger create `
-    -g $resourceGroup `
-    --namespace $connectorGateway `
-    -n $triggerName `
-    --connection-details $connectionDetails `
-    --operation-name $operationName `
-    --parameters $parameters `
-    --notification-details $notificationDetails `
-    --state "Enabled" `
-    --description "Office 365 OnNewEmailV3 -> inbox_triage" | Out-Null
+$connectionDetailsFile  = New-TemporaryFile
+$notificationDetailsFile = New-TemporaryFile
+$parametersFile = New-TemporaryFile
+try {
+    Set-Content -Path $connectionDetailsFile -Value $connectionDetails -Encoding ascii
+    Set-Content -Path $notificationDetailsFile -Value $notificationDetails -Encoding ascii
+    Set-Content -Path $parametersFile -Value $parameters -Encoding ascii
+
+    az connector-namespace trigger create `
+        -g $resourceGroup `
+        --namespace $connectorGateway `
+        -n $triggerName `
+        --connection-details "@$($connectionDetailsFile.FullName)" `
+        --operation-name $operationName `
+        --parameters "@$($parametersFile.FullName)" `
+        --notification-details "@$($notificationDetailsFile.FullName)" `
+        --state "Enabled" `
+        --description "Office 365 OnNewEmailV3 -> inbox_triage" | Out-Null
+
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+} finally {
+    Remove-Item $connectionDetailsFile, $notificationDetailsFile, $parametersFile -ErrorAction SilentlyContinue
+}
 
 Write-Host "✅ Trigger config created." -ForegroundColor Green
 Write-Host ""

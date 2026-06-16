@@ -1,6 +1,6 @@
 # M365 Inbox Agent for Azure Functions (Python) [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/downloads/) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?repo=Azure-Samples%2Fm365-inbox-serverless-agent-python)
 
-An AI agent that triages your Microsoft 365 inbox: it escalates urgent mail to Teams, drafts replies, and emails you a daily briefing — all following rules you write in plain markdown.
+An AI agent that triages your Microsoft 365 inbox: it escalates urgent mail to Teams, drafts replies, and emails you a daily briefing - all following rules you write in plain markdown.
 
 **Powered by Azure Functions and Microsoft 365 connectors. You bring the markdown logic and a little Python for your rules.**
 
@@ -9,10 +9,10 @@ Run it locally in minutes against sample data, point it at your real inbox, then
 
 ## What it does for you
 
-- 📋 **Daily Briefing** — a daily summary of what matters lands in your inbox.
-- 🚨 **Escalate** — VIP / urgent mail is posted to your Teams channel, with an @mention.
-- ✉️ **Reply** — action-required mail gets a grounded draft reply.
-- 💬 **Chat** — ask read-only questions about your recent mail.
+- 📋 **Daily Briefing**: a daily summary of what matters lands in your inbox.
+- 🚨 **Escalate**: VIP / urgent mail is posted to your Teams channel, with an @mention.
+- ✉️ **Reply**: action-required mail gets a grounded draft reply.
+- 💬 **Chat**: ask read-only questions about your recent mail.
 
 → Full walkthroughs in [docs/use-cases.md](docs/use-cases.md).
 
@@ -21,7 +21,7 @@ Run it locally in minutes against sample data, point it at your real inbox, then
 - Python 3.13+. Easiest install: [uv](https://docs.astral.sh/uv/), then `uv python install 3.13`.
 - [Azure Functions Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local) ≥ 4.12.0 (the v5 preview is not yet compatible).
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/).
-- An Azure subscription. `azd provision` (Quickstart step 2) creates the Microsoft Foundry model deployment the agents need — required even for the offline path.
+- An Azure subscription. `azd provision` (Quickstart step 2) creates the Microsoft Foundry model deployment the agents need - required even for the offline path.
 - For real M365 (or `azd up`): permission to authorize Microsoft 365 connectors, plus the `connector-namespace` CLI extension:
 
 **macOS / Linux:**
@@ -54,7 +54,7 @@ Use the [Core Tools v4 install guide](https://learn.microsoft.com/en-us/azure/az
 
 ### 2. Get the resources you need
 
-`azd provision` creates the Foundry model deployment the agents require (needed even offline); `hydrate` copies the settings into `local.settings.json`. No API keys — managed identity throughout.
+`azd provision` creates the Foundry model deployment the agents require (needed even offline); `hydrate` copies the settings into `local.settings.json`. No API keys - managed identity throughout.
 
 **macOS / Linux:**
 ```bash
@@ -68,7 +68,7 @@ azd provision
 .\infra\scripts\hydrate-local-settings.ps1
 ```
 
-> Yes — even the offline, sample-data run needs this one-time `azd provision`, because the agents call a Foundry model. It provisions the model deployment only; it never touches your inbox.
+> Yes - even the offline, sample-data run needs this one-time `azd provision`, because the agents call a Foundry model. It provisions the model deployment only; it never touches your inbox.
 
 ### 3. Run the local client
 
@@ -80,7 +80,7 @@ uv run python chat.py                  # terminal C
 
 (These commands work identically on macOS, Linux, and Windows.)
 
-> 🪟 **Windows local dev:** If `uv run func start` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix — you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
+> 🪟 **Windows local dev:** If `uv run func start` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix - you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
 
 ### 4. Try it (offline, safe)
 
@@ -108,9 +108,9 @@ Get the Teams ids by opening the target channel in Teams → ⋯ → **Get link 
 azd up
 ```
 
-> **Known issue (point-in-time):** `azd up` may currently fail at the deploy step on Python 3.13 — the Flex remote build uses Python 3.11.8 ([Azure/azure-dev#8538](https://github.com/Azure/azure-dev/issues/8538)). Simple workaround: [docs/deploy-python-313.md](docs/deploy-python-313.md). This note can be removed once the bug is fixed.
+> **Known issue (point-in-time):** `azd up` may currently fail at the deploy step on Python 3.13 - the Flex remote build uses Python 3.11.8 ([Azure/azure-dev#8538](https://github.com/Azure/azure-dev/issues/8538)). Simple workaround: [docs/deploy-python-313.md](docs/deploy-python-313.md). This note can be removed once the bug is fixed.
 
-Now `inbox-triage` fires automatically on every new email — no client, no waiting. Send yourself a message, then watch your Teams channel (VIP / incident) or your inbox (replies). Tail the live trace with `azd monitor --logs`.
+Now `inbox-triage` fires automatically on every new email - no client, no waiting. Send yourself a message, then watch your Teams channel (VIP / incident) or your inbox (replies). Tail the live trace with `azd monitor --logs`.
 
 ### 7. <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="20" align="center"> Make it yours
 
@@ -130,7 +130,7 @@ azd down --purge
 
 ## How it works (the short version)
 
-This is an Azure Functions app on the serverless agents runtime. Each agent is a markdown file (`*.agent.md`) that reasons over your rules in `skills/*.md`; a small `tools/match_rule.py` adds deterministic classification. Microsoft 365 actions go through Entra-authorized MCP connectors — no app secrets, managed identity end to end.
+This is an Azure Functions app on the serverless agents runtime. Each agent is a markdown file (`*.agent.md`) that reasons over your rules in `skills/*.md`; a small `tools/match_rule.py` adds deterministic classification. Microsoft 365 actions go through Entra-authorized MCP connectors - no app secrets, managed identity end to end.
 
 → Deeper dives: [How it works](docs/how-it-works.md) · [Configuration & deployment](docs/configuration.md) · [Customize](docs/customize.md) · [Troubleshooting & reference](docs/troubleshooting.md)
 

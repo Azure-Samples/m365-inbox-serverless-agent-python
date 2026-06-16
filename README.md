@@ -1,4 +1,4 @@
-# M365 Inbox Agent for Azure Functions (Python) [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/downloads/) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?repo=Azure-Samples%2Fm365-inbox-agent-functions-python)
+# M365 Inbox Agent for Azure Functions (Python) [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/downloads/) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?repo=Azure-Samples%2Fm365-inbox-serverless-agent-python)
 
 An AI agent that triages your Microsoft 365 inbox: it escalates urgent mail to Teams, drafts replies, and emails you a daily briefing — all following rules you write in plain markdown.
 
@@ -6,7 +6,6 @@ An AI agent that triages your Microsoft 365 inbox: it escalates urgent mail to T
 
 Run it locally in minutes against sample data, point it at your real inbox, then deploy it so it runs on its own.
 
-> 📝 Prefer pure markdown with no custom Python? See the [markdown-only sibling](https://github.com/Azure-Samples/m365-inbox-agent-functions-markdown) ([how they differ](docs/how-it-works.md#python-vs-markdown)).
 
 ## What it does for you
 

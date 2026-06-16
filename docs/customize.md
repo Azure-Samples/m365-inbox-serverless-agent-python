@@ -13,7 +13,7 @@ OWNER=$(gh api user --jq .login)   # or override with your org
 REPO=my-inbox-agent                # or override with any name
 
 gh repo create "$OWNER/$REPO" \
-  --template Azure-Samples/m365-inbox-agent-functions-python \
+  --template Azure-Samples/m365-inbox-serverless-agent-python \
   --private --clone
 ```
 
@@ -31,7 +31,7 @@ Even in a private repo, never commit real secrets. This sample uses managed iden
 **Getting upstream updates.** Sync your private copy from this repo with a single GitHub CLI command, then pull locally:
 
 ```bash
-gh repo sync "$OWNER/$REPO" --source Azure-Samples/m365-inbox-agent-functions-python
+gh repo sync "$OWNER/$REPO" --source Azure-Samples/m365-inbox-serverless-agent-python
 git pull
 ```
 

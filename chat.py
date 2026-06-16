@@ -57,6 +57,7 @@ ALLOWED_READ_OP = "office365_GetEmailsV3"
 INBOX_CHAT_TOP = int(os.environ.get("INBOX_CHAT_TOP", "5"))
 PREVIEW_CHARS = 280
 
+
 def _read_local_settings() -> dict[str, str]:
     if not SETTINGS_PATH.exists():
         return {}
@@ -262,12 +263,14 @@ def _sample_snapshot() -> list[dict]:
         except (OSError, json.JSONDecodeError):
             continue
         body = graph.get("body", {}).get("content", "") or ""
-        out.append({
-            "Subject": graph.get("subject", "") or "",
-            "From": graph.get("from", {}).get("emailAddress", {}).get("address", ""),
-            "BodyPreview": body[:200],
-            "Importance": graph.get("importance", "normal"),
-        })
+        out.append(
+            {
+                "Subject": graph.get("subject", "") or "",
+                "From": graph.get("from", {}).get("emailAddress", {}).get("address", ""),
+                "BodyPreview": body[:200],
+                "Importance": graph.get("importance", "normal"),
+            }
+        )
     return out
 
 
@@ -353,10 +356,7 @@ def _build_prompt(agent_name: str) -> tuple[str, list[str]]:
     if agent_name == "weekly_rule_suggestions":
         if _run_mode("weekly_rule_suggestions") == "live":
             owner = _mailbox_owner()
-            prompt = (
-                "Review this week's inbox activity now and email rule suggestions\n"
-                f"to the mailbox owner: {owner}."
-            )
+            prompt = f"Review this week's inbox activity now and email rule suggestions\nto the mailbox owner: {owner}."
             return prompt, [f"  Mode: 🟢 LIVE — suggestions emailed to {owner}"]
         snapshot = _sample_snapshot()
         rules_text = _load_vip_rules_text()
@@ -444,10 +444,14 @@ def _dict_is_error(d: dict) -> bool:
 
     api_code = d.get("code") or d.get("Code")
     message = d.get("message") or d.get("Message")
-    if isinstance(api_code, str) and message and re.search(
-        r"error|invalid|unauthor|forbidden|denied|badrequest|notfound|failed|fault",
-        api_code,
-        re.IGNORECASE,
+    if (
+        isinstance(api_code, str)
+        and message
+        and re.search(
+            r"error|invalid|unauthor|forbidden|denied|badrequest|notfound|failed|fault",
+            api_code,
+            re.IGNORECASE,
+        )
     ):
         return True
 
@@ -510,14 +514,16 @@ def _tool_failed(call: dict) -> bool:
         re.IGNORECASE,
     ):
         return True
-    return bool(re.search(
-        r"maximum consecutive function call errors"
-        r"|(action|request|operation|tool call)[^.\n]{0,80}\bfailed\b"
-        r"|response status code[^.\n]{0,40}\b[45]\d\d\b"
-        r"|\b[45]\d\d\s+(unauthorized|forbidden|bad request|internal server error)",
-        text,
-        re.IGNORECASE,
-    ))
+    return bool(
+        re.search(
+            r"maximum consecutive function call errors"
+            r"|(action|request|operation|tool call)[^.\n]{0,80}\bfailed\b"
+            r"|response status code[^.\n]{0,40}\b[45]\d\d\b"
+            r"|\b[45]\d\d\s+(unauthorized|forbidden|bad request|internal server error)",
+            text,
+            re.IGNORECASE,
+        )
+    )
 
 
 def _render_result(agent_name: str, result: dict, elapsed: float) -> None:
@@ -558,11 +564,13 @@ def _render_result(agent_name: str, result: dict, elapsed: float) -> None:
             print(f"    {line}")
 
     if mode == "dry_run":
-        stray = sorted({
-            call.get("tool_name", "")
-            for call in tool_calls
-            if re.search(r"office365_|teams_|SendEmail|PostMessage", call.get("tool_name", ""))
-        })
+        stray = sorted(
+            {
+                call.get("tool_name", "")
+                for call in tool_calls
+                if re.search(r"office365_|teams_|SendEmail|PostMessage", call.get("tool_name", ""))
+            }
+        )
         if stray:
             print("\n  ⚠ DRY RUN violation: a connector tool was called:")
             print(f"    {', '.join(stray)}")
@@ -579,9 +587,8 @@ def _render_result(agent_name: str, result: dict, elapsed: float) -> None:
         print("      stops further tool calls but still returns a (partial) summary.")
         print("    Run `uv run func start --verbose` to see the exact connector error.")
 
-    live_blocked = (
-        mode != "dry_run"
-        and re.search(r"could not read|forbidden|unauthorized|not authoriz", response_text, re.IGNORECASE)
+    live_blocked = mode != "dry_run" and re.search(
+        r"could not read|forbidden|unauthorized|not authoriz", response_text, re.IGNORECASE
     )
     if live_blocked:
         print("\n  ⚠ LIVE could not reach your mailbox. The Outlook connection is almost")
@@ -755,9 +762,7 @@ def _read_inbox_live(top: int = INBOX_CHAT_TOP) -> tuple[list[dict] | None, str 
         async with tool:
             exposed = {getattr(f, "name", "") for f in (tool.functions or [])}
             if exposed != {ALLOWED_READ_OP}:
-                raise RuntimeError(
-                    f"refusing to read: server exposed unexpected tools {sorted(exposed)}"
-                )
+                raise RuntimeError(f"refusing to read: server exposed unexpected tools {sorted(exposed)}")
             res = await tool.call_tool(ALLOWED_READ_OP, top=top, fetchOnlyUnread=False)
         text = ""
         for c in res if isinstance(res, list) else [res]:

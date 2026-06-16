@@ -95,8 +95,8 @@ param modelVersion string = '2026-03-17'
 @description('Model deployment SKU name.')
 param modelSkuName string = 'GlobalStandard'
 
-@description('Model deployment capacity.')
-param modelCapacity int = 50
+@description('Model deployment capacity (1000s of tokens per minute). The default of 150 is high enough that a single multi-step agent run (e.g. daily-briefing) will not hit 429s on the first try, and is well within the per-region/per-model quota most new subscriptions have. Lower it if you are quota-constrained; raise it for heavier multi-user workloads.')
+param modelCapacity int = 150
 
 @description('Name for the model deployment in Azure AI Services.')
 param modelDeploymentName string = 'gpt-5.4-mini'

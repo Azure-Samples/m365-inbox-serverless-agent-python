@@ -124,6 +124,43 @@ def chat_url(agent_name: str) -> str:
     return url
 
 
+def _host_kind() -> str:
+    """'cloud' if BASE_URL points to *.azurewebsites.net, else 'local'."""
+    return "cloud" if "azurewebsites.net" in BASE_URL else "local"
+
+
+def _host_reachable(timeout: float = 2.0) -> bool:
+    """True if the Functions host at BASE_URL responds at all (any HTTP code).
+
+    Connection refused / DNS failure / TLS error => host is not reachable.
+    """
+    probe = f"{BASE_URL}/admin/host/status"
+    try:
+        urllib.request.urlopen(probe, timeout=timeout)
+        return True
+    except urllib.error.HTTPError:
+        return True
+    except Exception:
+        return False
+
+
+def _print_host_unreachable_hint() -> None:
+    """Shared 'host is down' guidance — pointed at local and cloud paths."""
+    if _host_kind() == "cloud":
+        print("  AGENT_URL points to the cloud Function App but it did not respond.")
+        print("  Re-run: `source ./infra/scripts/use-cloud-host.sh` (refreshes the key),")
+        print("  or check the Function App is running in the Azure portal.")
+        return
+    print("  The local Functions host is not running. Either:")
+    print("    A) Run it locally (3 terminals):")
+    print("         terminal A: azurite --silent --location ~/.azurite")
+    print("         terminal B: uv run func start")
+    print("         terminal C: uv run python chat.py")
+    print("    B) Or call the deployed cloud Function App from this shell:")
+    print("         source ./infra/scripts/use-cloud-host.sh")
+    print("         uv run python chat.py")
+
+
 _TEAMS_TRIGGERING_RX = re.compile(r"urgent|p1\b|incident|escalat|outage", re.IGNORECASE)
 _SKIP_RX = re.compile(r"^\s*fyi\b|newsletter", re.IGNORECASE)
 
@@ -625,7 +662,8 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
         return
     except Exception as exc:
         print(f"\nError calling {agent_name} /chat: {exc}")
-        print("Is the Functions host running with `uv run func start`?\n")
+        _print_host_unreachable_hint()
+        print()
         return
 
     elapsed = time.monotonic() - start
@@ -645,9 +683,16 @@ def show_readiness() -> None:
 
     print("\nConfig readiness")
     print("================")
+    kind = _host_kind()
+    up = _host_reachable()
+    host_label = f"{'🟢' if up else '🔴'} {kind} ({BASE_URL}) {'reachable' if up else 'NOT reachable'}"
+    print(f"  {'Functions host':<22} {host_label}")
     for key in ("OUTLOOK_MCP_ENDPOINT", "MAILBOX_OWNER_EMAIL", "TEAMS_TEAM_ID", "TEAMS_CHANNEL_ID"):
         print(f"  {key:<22} {mark(key)}")
     print()
+    if not up:
+        _print_host_unreachable_hint()
+        print()
     print(f"  {'Agent':<26} {'Mode':<9} {'Sends email':<13} Posts Teams")
     print(f"  {'-' * 26} {'-' * 9} {'-' * 13} {'-' * 11}")
     for label, name in (
@@ -878,7 +923,8 @@ def chat_with_inbox() -> None:
             continue
         except Exception as exc:
             print(f"\n  Error: {exc}")
-            print("  Is the Functions host running with `uv run func start`?\n")
+            _print_host_unreachable_hint()
+            print()
             continue
 
         response_text = (result.get("response") or "").strip()

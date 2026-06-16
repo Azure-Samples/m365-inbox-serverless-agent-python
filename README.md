@@ -88,7 +88,21 @@ Pick **1**, **2**, or **3**. The client shows a 🟡 Offline banner and runs eve
 
 Want it to act on your real inbox while still local? See [Go live with real M365](docs/configuration.md#go-live-with-real-m365).
 
-### 5. Deploy to Azure, then try it again
+### 5. Go live (set your recipient and Teams target)
+
+Set who real mail and Teams posts go to, **before** you deploy. Without these, the deployed agents stay in DRY RUN (the chat client's doctor banner will tell you).
+
+```bash
+azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com     # required for LIVE mail
+azd env set TEAMS_TEAM_ID        <team-id>              # optional, enables Teams alerts
+azd env set TEAMS_CHANNEL_ID     <channel-id>           # optional, enables Teams alerts
+```
+
+Get the Teams ids by opening the target channel in Teams → ⋯ → **Get link to channel** (the URL contains both ids), or via [docs/configuration.md](docs/configuration.md).
+
+> Already deployed with placeholders? Set them now and re-run `azd up` (or just `azd provision`) to push the new values to the Function App.
+
+### 6. Deploy to Azure, then try it again
 
 ```bash
 azd up
@@ -98,7 +112,7 @@ azd up
 
 Now `inbox-triage` fires automatically on every new email — no client, no waiting. Send yourself a message, then watch your Teams channel (VIP / incident) or your inbox (replies). Tail the live trace with `azd monitor --logs`.
 
-### 6. <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="20" align="center"> Make it yours
+### 7. <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="20" align="center"> Make it yours
 
 - ✍️ Edit `skills/vip-rules.md` to set your VIPs, what to skip, and what escalates to Teams.
 - 🔁 The `weekly-rule-suggestions` agent proposes tuning that you approve by hand.
@@ -106,7 +120,7 @@ Now `inbox-triage` fires automatically on every new email — no client, no wait
 
 → Full guide: [docs/customize.md](docs/customize.md).
 
-### 7. Clean up
+### 8. Clean up
 
 ```bash
 azd down --purge

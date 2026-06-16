@@ -9,9 +9,9 @@ Run it locally in minutes against sample data, point it at your real inbox, then
 
 ## What it does for you
 
+- 📋 **Daily Briefing** — a daily summary of what matters lands in your inbox.
 - 🚨 **Escalate** — VIP / urgent mail is posted to your Teams channel, with an @mention.
 - ✉️ **Reply** — action-required mail gets a grounded draft reply.
-- 📋 **Brief** — a daily summary of what matters lands in your inbox.
 - 💬 **Chat** — ask read-only questions about your recent mail.
 
 → Full walkthroughs in [docs/use-cases.md](docs/use-cases.md).

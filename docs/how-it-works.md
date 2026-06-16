@@ -103,16 +103,4 @@ Keep M365 connector endpoint values blank for offline sample-data runs; set them
 
 ## Python vs Markdown
 
-Both repos define the same three agents, same skills, same Bicep, same governance. The difference is where the logic lives.
-
-| | **This repo (Python)** | [Markdown sibling](https://github.com/Azure-Samples/m365-inbox-agent-functions-markdown) |
-|---|---|---|
-| Agent logic | LLM reasons from `.agent.md` + skills text, plus one `tools/match_rule.py` classifier | Same, but without `tools/` |
-| `tools/` directory | ✅ one Python tool (`match_rule.py`, deterministic classification) | ❌ none (by design) |
-| I/O path | MCP connectors in LIVE; DRY RUN renders deliverables as text when settings are placeholders | MCP only (Outlook & Teams managed connectors) |
-| Offline dev | `uv run python chat.py` runs every agent in DRY RUN from `sample-data/inbox/*.json` and prints text deliverables | Same |
-| `function_app.py` | One line: `app = create_function_app()` (tools auto-discovered) | Identical one line |
-| Hand-written Python | ~1 line + `tools/match_rule.py` | ~1 line |
-
-**Pick this repo if** you want a code escape hatch for offline hacking, deterministic rule matching, or learning the SDK.
-**Pick the markdown sibling if** you want to see the runtime's declarative promise: a production-shaped M365 agent with effectively zero hand-written code.
+This repo uses Python tools alongside `.agent.md` markdown — the LLM reasons from the markdown skills, and one `tools/match_rule.py` classifier provides deterministic rule matching. A pure-markdown variant (no `tools/` directory) was prototyped at `Azure-Samples/m365-inbox-agent-functions-markdown` but is **archived** — both variants worked, and this Python version is the maintained one.

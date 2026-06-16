@@ -98,21 +98,21 @@ azd up
 
 Now `inbox-triage` fires automatically on every new email — no client, no waiting. Send yourself a message, then watch your Teams channel (VIP / incident) or your inbox (replies). Tail the live trace with `azd monitor --logs`.
 
-### Clean up
-
-```bash
-azd down --purge
-```
-
-> Hitting an error? See [docs/troubleshooting.md](docs/troubleshooting.md).
-
-## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="20" align="center"> Make it yours
+### 6. <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Shield/SVG/ic_fluent_shield_24_regular.svg" width="20" align="center"> Make it yours
 
 - ✍️ Edit `skills/vip-rules.md` to set your VIPs, what to skip, and what escalates to Teams.
 - 🔁 The `weekly-rule-suggestions` agent proposes tuning that you approve by hand.
 - 🔒 Use this repo as a **private template** before adding real rules or tenant data.
 
 → Full guide: [docs/customize.md](docs/customize.md).
+
+### 7. Clean up
+
+```bash
+azd down --purge
+```
+
+> Hitting an error? See [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## How it works (the short version)
 

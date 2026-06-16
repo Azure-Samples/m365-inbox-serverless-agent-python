@@ -20,9 +20,7 @@ RULES_PATH = Path(__file__).resolve().parent.parent / "skills" / "vip-rules.md"
 
 _BACKTICK_RX = re.compile(r"`([^`]+)`")
 _BOLD_RX = re.compile(r"\*\*")
-_LABEL_RX = re.compile(
-    r"^-?\s*(trigger|condition|action|priority|safety|channel)\b[^:]*:", re.IGNORECASE
-)
+_LABEL_RX = re.compile(r"^-?\s*(trigger|condition|action|priority|safety|channel)\b[^:]*:", re.IGNORECASE)
 
 # A route name is a short, lowercase identifier: letters, digits, and internal
 # hyphens only. This keeps the env-suffix transform (`-` -> `_`, upper) free of
@@ -83,6 +81,7 @@ def _resolve_channel(route: str) -> dict[str, Any] | None:
         "teams_recipient": {"groupId": team.strip(), "channelId": channel.strip()},
     }
 
+
 _rules_cache: tuple[tuple[str, int], str] | None = None
 
 
@@ -90,11 +89,7 @@ def _field(mail: dict[str, Any], *names: str) -> str:
     for name in names:
         value = mail.get(name)
         if isinstance(value, dict):
-            value = (
-                value.get("emailAddress", {}).get("address")
-                or value.get("address")
-                or value.get("name")
-            )
+            value = value.get("emailAddress", {}).get("address") or value.get("address") or value.get("name")
         if value:
             return str(value)
     return ""

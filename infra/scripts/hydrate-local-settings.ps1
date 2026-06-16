@@ -78,4 +78,8 @@ $settings = [ordered]@{
 
 $settings | ConvertTo-Json -Depth 5 | Set-Content -Path local.settings.json -Encoding UTF8
 Write-Host "Wrote local.settings.json -- provider=foundry, model=$($envVars['FOUNDRY_MODEL'])"
-Write-Host "Run 'func start' to start the host."
+Write-Host ""
+Write-Host "Next: run these in three separate terminals from the project root:"
+Write-Host "  azurite --silent --skipApiVersionCheck --location .azurite   # terminal A"
+Write-Host "  uv run func start                                            # terminal B"
+Write-Host "  uv run python chat.py                                        # terminal C"

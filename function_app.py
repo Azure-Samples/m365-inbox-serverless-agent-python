@@ -73,7 +73,7 @@ def _warn_on_partial_config() -> None:
     banner.append("Fix: edit local.settings.json, or run:")
     for key, _ in issues:
         banner.append(f"    azd env set {key} <real-value>")
-    banner.append("Then re-run `./infra/scripts/hydrate-local-settings.sh` and restart `uv run func start`.")
+    banner.append("Then re-run `./infra/scripts/hydrate-local-settings.sh` and restart `uv run func5 start`.")
     banner.append("=" * 78)
     print("\n".join(banner), file=sys.stderr, flush=True)
 

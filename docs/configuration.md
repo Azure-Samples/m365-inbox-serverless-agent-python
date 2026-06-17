@@ -12,7 +12,7 @@ Run the agents against your real Outlook + Teams while still developing locally:
 azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com
 ./infra/scripts/hydrate-local-settings.sh
 ./infra/scripts/authorize-connectors.sh
-# Ctrl-C the func host, then `uv run func start` again
+# Ctrl-C the func host, then `uv run func5 start` again
 ```
 
 `authorize-connectors.sh` is **required** the first time you go live: it runs a one-time OAuth consent so the connector namespace can read your mailbox and send on your behalf. It opens a browser tab per connection and waits until the connection reports `Connected`. Setting the env vars alone is not enough. Until consent completes, LIVE runs fail with `could not read inbox` (the agent stops and sends nothing). Re-running the script is safe; already-authorized connections are skipped.

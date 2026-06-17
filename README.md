@@ -19,7 +19,7 @@ Run it locally in minutes against sample data, point it at your real inbox, then
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg" width="20" align="center"> Prerequisites
 
 - Python 3.13+. Easiest install: [uv](https://docs.astral.sh/uv/), then `uv python install 3.13`.
-- [Azure Functions Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local) ≥ 4.12.0 (the v5 preview is not yet compatible).
+- [Azure Functions CLI v5 preview](https://learn.microsoft.com/en-us/azure/azure-functions/functions-cli-develop-local), installed as `func5` (Quickstart step 1). v5 auto-starts Azurite and ships extension bundles as a workload, so this template runs with two terminals instead of three. Already on v4? Keep it; the install below leaves `func` alone and adds `func5` alongside. See [Troubleshooting: still using v4](docs/troubleshooting.md#still-using-v4) for the fallback.
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/).
 - An Azure subscription. `azd provision` (Quickstart step 2) creates the Microsoft Foundry model deployment the agents need - required even for the offline path.
 - For real M365 (or `azd up`): permission to authorize Microsoft 365 connectors, plus the `connector-namespace` CLI extension:
@@ -40,17 +40,31 @@ Five steps: install, get resources, run locally, try it, deploy.
 
 ### 1. Install the tools
 
-**macOS:**
+The Azure Functions CLI v5 is in preview. Install the latest preview build from the [Azure Functions Core Tools releases page](https://github.com/Azure/azure-functions-core-tools/releases) (look for `Azure.Functions.Cli-osx-arm64-5.*.tar.gz` on Apple Silicon, `-osx-x64-` on Intel, `-linux-x64-` on Linux, or `-win-x64-` on Windows). Extract it into its own directory and put a `func5` shim on your `PATH` so v5 sits alongside any existing v4 `func` install.
+
+**macOS / Linux:**
 ```bash
-brew tap azure/functions
-brew install azure-functions-core-tools@4
 brew install azure-dev
-npm install -g azurite
 curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install Functions CLI v5 as func5 (leaves any existing func/v4 alone)
+FUNC5_DIR="$HOME/.azure-functions/v5"
+mkdir -p "$FUNC5_DIR" && cd "$FUNC5_DIR"
+# Replace the URL with the latest v5 preview asset for your OS/arch from the releases page above
+curl -LO https://github.com/Azure/azure-functions-core-tools/releases/download/v5.0.0-preview.2/Azure.Functions.Cli-osx-arm64-5.0.0-preview.2.tar.gz
+tar -xzf Azure.Functions.Cli-osx-arm64-5.0.0-preview.2.tar.gz
+mkdir -p "$HOME/.local/bin" && ln -sf "$FUNC5_DIR/func" "$HOME/.local/bin/func5"
+# add ~/.local/bin to PATH if it isn't already, then in a fresh shell:
+func5 setup --features python
 ```
 
-**Linux / Windows / WSL:**
-Use the [Core Tools v4 install guide](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools), [azd install guide](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd), [Azurite install guide](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite), and [uv install guide](https://docs.astral.sh/uv/getting-started/installation/).
+**Windows:**
+Install [azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) and [uv](https://docs.astral.sh/uv/getting-started/installation/), then download the v5 preview `Azure.Functions.Cli-win-x64-5.*.zip` from the releases page, extract it to a folder like `C:\func5`, add that folder to your `PATH` as `func5` (rename `func.exe` to `func5.exe` if you want both versions side-by-side), and run:
+```powershell
+func5 setup --features python
+```
+
+`func5 setup --features python` is a one-shot install of the v5 host, Python worker, templates, and the extension bundles workload (the fix for [Azure/azure-functions-core-tools#5309](https://github.com/Azure/azure-functions-core-tools/issues/5309)). You only need to run it once per machine.
 
 ### 2. Get the resources you need
 
@@ -73,14 +87,13 @@ azd provision
 ### 3. Run the local client
 
 ```bash
-azurite --silent --skipApiVersionCheck --location .azurite   # terminal A
-uv run func start                      # terminal B
-uv run python chat.py                  # terminal C
+uv run func5 start                     # terminal A (v5 auto-starts Azurite)
+uv run python chat.py                  # terminal B
 ```
 
 (These commands work identically on macOS, Linux, and Windows.)
 
-> 🪟 **Windows local dev:** If `uv run func start` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix - you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
+> 🪟 **Windows local dev:** If `uv run func5 start` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix - you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
 
 ### 4. Try it (offline, safe)
 

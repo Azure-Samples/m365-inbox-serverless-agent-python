@@ -4,7 +4,7 @@
 #
 # Safe to re-run: already-authorized connections are skipped.
 # Works without a deployed function app. Runs against the connector namespace
-# directly so local `uv run func start` can call real MCP tools.
+# directly so local `uv run func5 start` can call real MCP tools.
 #
 # Prereq: the `connector-namespace` Azure CLI extension. Install once with:
 #   az extension add --source <connector_namespace-*.whl URL from

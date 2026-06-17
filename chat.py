@@ -154,7 +154,7 @@ def _print_host_unreachable_hint() -> None:
         return
     print("  The local Functions host is not running. Either:")
     print("    A) Run it locally (2 terminals; v5 auto-starts Azurite):")
-    print("         terminal A: uv run func5 start")
+    print("         terminal A: func5 run")
     print("         terminal B: uv run python chat.py")
     print("    B) Or call the deployed cloud Function App from this shell:")
     print("         source ./infra/scripts/use-cloud-host.sh")
@@ -621,7 +621,7 @@ def _render_result(agent_name: str, result: dict, elapsed: float) -> None:
         print("    - Teams post with empty TEAMS_TEAM_ID / TEAMS_CHANNEL_ID")
         print("    - 3 consecutive failures trip the runtime's circuit breaker, which")
         print("      stops further tool calls but still returns a (partial) summary.")
-        print("    Run `uv run func5 start --verbose` to see the exact connector error.")
+        print("    Run `func5 run --verbose` to see the exact connector error.")
 
     live_blocked = mode != "dry_run" and re.search(
         r"could not read|forbidden|unauthorized|not authoriz", response_text, re.IGNORECASE
@@ -661,7 +661,7 @@ def trigger_agent(agent_name: str, mode_icon: str, mode_label: str = "") -> None
             print("  Check that:")
             print("    - the .agent.md frontmatter has builtin_endpoints.chat_api: true")
             print("    - host.json extensions.http.routePrefix matches (this client reads it)")
-            print("    - you restarted `uv run func5 start` after editing either file")
+            print("    - you restarted `func5 run` after editing either file")
         if details:
             print(f"  {details}")
         print()
@@ -726,7 +726,7 @@ def show_readiness() -> None:
         print("  Next step to LIVE: `azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com`,")
         print("  then `./infra/scripts/hydrate-local-settings.sh`. If you have not already")
         print("  authorized the Outlook connection, also run (one time)")
-        print("  `./infra/scripts/authorize-connectors.sh`, then restart `uv run func5 start`.")
+        print("  `./infra/scripts/authorize-connectors.sh`, then restart `func5 run`.")
     elif not _teams_alerts_enabled():
         print("  Outlook is LIVE. Set TEAMS_TEAM_ID / TEAMS_CHANNEL_ID to enable Teams alerts")
         print("  (inbox escalations and the daily briefing's urgent post).")
@@ -920,7 +920,7 @@ def chat_with_inbox() -> None:
             if exc.code == 404:
                 print(f"  No agent responded at {chat_url(CHAT_AGENT[0])}")
                 print("  Check inbox-chat.agent.md has builtin_endpoints.chat_api: true and")
-                print("  that you restarted `uv run func5 start` after adding it.")
+                print("  that you restarted `func5 run` after adding it.")
             if details:
                 print(f"  {details}")
             print()

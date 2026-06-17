@@ -18,7 +18,8 @@ Run it locally in minutes against sample data, point it at your real inbox, then
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg" width="20" align="center"> Prerequisites
 
-- [Python 3.13+](https://docs.astral.sh/uv/) via uv: `uv python install 3.13`.
+- [uv](https://docs.astral.sh/uv/), then `uv python install 3.13`.
+- [Azurite](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=npm-package) for local storage emulation (e.g. `npm install -g azurite`). `func5` launches it on demand if it's on your `PATH`.
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
 - [Azure Functions Core Tools v5 (preview)](https://github.com/Azure/azure-functions-core-tools/releases). This template calls the binary `func5` so v5 sits alongside any existing v4 `func`. Already on v4? See [Troubleshooting: still using v4](docs/troubleshooting.md#still-using-v4).
 - [Azure CLI `connector-namespace` extension](https://github.com/Azure/Connectors/tree/main/public-preview/connector-namespace-cli) — needed for `azd up` and real M365 connectors.
@@ -57,13 +58,13 @@ azd provision
 ### 3. Run the local client
 
 ```bash
-uv run func5 start                     # terminal A (v5 auto-starts Azurite)
+func5 run                              # terminal A (v5 auto-starts Azurite)
 uv run python chat.py                  # terminal B
 ```
 
 (These commands work identically on macOS, Linux, and Windows.)
 
-> 🪟 **Windows local dev:** If `uv run func5 start` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix - you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
+> 🪟 **Windows local dev:** If `func5 run` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix - you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
 
 ### 4. Try it (offline, safe)
 

@@ -44,5 +44,5 @@ chmod 600 local.settings.json
 echo "Wrote local.settings.json — provider=foundry, model=${FOUNDRY_MODEL}"
 echo ""
 echo "Next: run these in two separate terminals from the project root:"
-echo "  uv run func5 start         # terminal A (v5 auto-starts Azurite)"
+echo "  func5 run                  # terminal A (v5 auto-starts Azurite)"
 echo "  uv run python chat.py      # terminal B"

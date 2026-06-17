@@ -80,5 +80,5 @@ $settings | ConvertTo-Json -Depth 5 | Set-Content -Path local.settings.json -Enc
 Write-Host "Wrote local.settings.json -- provider=foundry, model=$($envVars['FOUNDRY_MODEL'])"
 Write-Host ""
 Write-Host "Next: run these in two separate terminals from the project root:"
-Write-Host "  uv run func5 start         # terminal A (v5 auto-starts Azurite)"
+Write-Host "  func5 run                  # terminal A (v5 auto-starts Azurite)"
 Write-Host "  uv run python chat.py      # terminal B"

@@ -18,21 +18,11 @@ Run it locally in minutes against sample data, point it at your real inbox, then
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg" width="20" align="center"> Prerequisites
 
-- Python 3.13+. Easiest install: [uv](https://docs.astral.sh/uv/), then `uv python install 3.13`.
-- [Azure Functions CLI v5 preview](https://learn.microsoft.com/en-us/azure/azure-functions/functions-cli-develop-local), installed as `func5` (Quickstart step 1). v5 auto-starts Azurite and ships extension bundles as a workload, so this template runs with two terminals instead of three. Already on v4? Keep it; the install below leaves `func` alone and adds `func5` alongside. See [Troubleshooting: still using v4](docs/troubleshooting.md#still-using-v4) for the fallback.
-- [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/).
-- An Azure subscription. `azd provision` (Quickstart step 2) creates the Microsoft Foundry model deployment the agents need - required even for the offline path.
-- For real M365 (or `azd up`): permission to authorize Microsoft 365 connectors, plus the `connector-namespace` CLI extension:
-
-**macOS / Linux:**
-```bash
-curl -fsSL https://aka.ms/connector-namespace-cli-install | sh
-```
-
-**Windows:**
-```powershell
-powershell -Command "Invoke-WebRequest -Uri 'https://aka.ms/connector-namespace-cli-install' -OutFile 'install.sh'; wsl bash install.sh"
-```
+- [Python 3.13+](https://docs.astral.sh/uv/) via uv: `uv python install 3.13`.
+- [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
+- [Azure Functions Core Tools v5 (preview)](https://github.com/Azure/azure-functions-core-tools/releases). This template calls the binary `func5` so v5 sits alongside any existing v4 `func`. Already on v4? See [Troubleshooting: still using v4](docs/troubleshooting.md#still-using-v4).
+- [Azure CLI `connector-namespace` extension](https://github.com/Azure/Connectors/tree/main/public-preview/connector-namespace-cli) — needed for `azd up` and real M365 connectors.
+- An Azure subscription. `azd provision` (Quickstart step 2) creates the Microsoft Foundry model deployment the agents need, required even for the offline path.
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Rocket/SVG/ic_fluent_rocket_24_regular.svg" width="20" align="center"> Quickstart
 
@@ -40,32 +30,13 @@ Five steps: install, get resources, run locally, try it, deploy.
 
 ### 1. Install the tools
 
-The Azure Functions CLI v5 is in preview. Install the latest preview build from the [Azure Functions Core Tools releases page](https://github.com/Azure/azure-functions-core-tools/releases) (look for `func-osx-arm64.tar.gz` on Apple Silicon, `func-osx-x64.tar.gz` on Intel, `func-linux-x64.tar.gz` / `func-linux-arm64.tar.gz` on Linux, or `func-win-x64.zip` / `func-win-arm64.zip` on Windows). Extract it into its own directory and put a `func5` shim on your `PATH` so v5 sits alongside any existing v4 `func` install.
+Follow the prereq links above and make sure the v5 binary is on your `PATH` as `func5`. Then run this once per machine to pull in the Python worker and extension bundles workload (the fix for [Azure/azure-functions-core-tools#5309](https://github.com/Azure/azure-functions-core-tools/issues/5309)):
 
-**macOS / Linux:**
 ```bash
-brew install azure-dev
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install Functions CLI v5 as func5 (leaves any existing func/v4 alone)
-FUNC5_DIR="$HOME/.azure-functions/v5"
-mkdir -p "$FUNC5_DIR" && cd "$FUNC5_DIR"
-# Swap in the asset for your OS/arch and the latest preview tag from the releases page above
-curl -L -o func5.tar.gz \
-  https://github.com/Azure/azure-functions-core-tools/releases/download/v5.0.0-preview.2/func-osx-arm64.tar.gz
-tar -xzf func5.tar.gz && rm func5.tar.gz
-mkdir -p "$HOME/.local/bin" && ln -sf "$FUNC5_DIR/func" "$HOME/.local/bin/func5"
-# Add ~/.local/bin to PATH if it isn't already, then in a fresh shell:
 func5 setup --features python
 ```
 
-**Windows:**
-Install [azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) and [uv](https://docs.astral.sh/uv/getting-started/installation/), then download the v5 preview `func-win-x64.zip` (or `func-win-arm64.zip`) from the releases page, extract it to a folder like `C:\func5`, rename `func.exe` to `func5.exe` so it sits alongside any existing v4 `func.exe`, add `C:\func5` to your `PATH`, and run:
-```powershell
-func5 setup --features python
-```
-
-`func5 setup --features python` is a one-shot install of the v5 host, Python worker, templates, and the extension bundles workload (the fix for [Azure/azure-functions-core-tools#5309](https://github.com/Azure/azure-functions-core-tools/issues/5309)). You only need to run it once per machine.
+That installs the v5 host, Python worker, templates, and the extension bundles workload that ships the M365 connectors in one shot.
 
 ### 2. Get the resources you need
 

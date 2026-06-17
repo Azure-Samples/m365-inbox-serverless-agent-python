@@ -77,12 +77,16 @@ Want it to act on your real inbox while still local? See [Go live with real M365
 Set who real mail and Teams posts go to, **before** you deploy. Without these, the deployed agents stay in DRY RUN (the chat client's doctor banner will tell you).
 
 ```bash
-azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com     # required for LIVE mail
-azd env set TEAMS_TEAM_ID        <team-id>              # optional, enables Teams alerts
-azd env set TEAMS_CHANNEL_ID     <channel-id>           # optional, enables Teams alerts
+azd env set MAILBOX_OWNER_EMAIL   you@your-tenant.com       # required for LIVE mail
+azd env set TEAMS_TEAM_ID         <team-id>                 # optional, enables Teams alerts
+azd env set TEAMS_CHANNEL_ID      <channel-id>              # optional, enables Teams alerts
+azd env set TEAMS_MENTION_USER_ID "$(az ad signed-in-user show --query id          -o tsv)"   # @mentions you on urgent alerts
+azd env set TEAMS_MENTION_NAME    "$(az ad signed-in-user show --query displayName -o tsv)"   # display name for the @mention
 ```
 
-Get the Teams ids by opening the target channel in Teams → ⋯ → **Get link to channel** (the URL contains both ids), or via [docs/configuration.md](docs/configuration.md).
+Get the Teams ids by opening the target channel in Teams → ⋯ → **Get link to channel** (the URL contains both `groupId=` → `TEAMS_TEAM_ID` and `19:...@thread.tacv2` → `TEAMS_CHANNEL_ID`).
+
+Or run `./infra/scripts/discover-teams-ids.ps1` (or `.sh`) to print all four `azd env set` lines pre-filled. More in [docs/configuration.md](docs/configuration.md).
 
 > Already deployed with placeholders? Set them now and re-run `azd up` (or just `azd provision`) to push the new values to the Function App.
 

@@ -33,11 +33,11 @@ hooks:
   postdeploy:
     posix:
       shell: sh
-      run: ./infra/scripts/configure-trigger.sh
+      run: ./infra/scripts/hydrate-local-settings.sh && ./infra/scripts/configure-trigger.sh
       interactive: true
       continueOnError: false
     windows:
       shell: pwsh
-      run: ./infra/scripts/configure-trigger.ps1
+      run: ./infra/scripts/hydrate-local-settings.ps1; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; ./infra/scripts/configure-trigger.ps1
       interactive: true
       continueOnError: false

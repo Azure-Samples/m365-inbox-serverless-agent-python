@@ -30,13 +30,11 @@ Five steps: install, get resources, run locally, try it, deploy.
 
 ### 1. Install the tools
 
-Follow the prereq links above and make sure the v5 binary is on your `PATH` as `func5`. Then run this once per machine to pull in the Python worker and extension bundles workload (the fix for [Azure/azure-functions-core-tools#5309](https://github.com/Azure/azure-functions-core-tools/issues/5309)):
+Follow the prereq links above and make sure the v5 binary is on your `PATH` as `func5`. Then run this once per machine to install the Python worker, templates, and extension bundles (which ships the M365 connectors):
 
 ```bash
 func5 setup --features python
 ```
-
-That installs the v5 host, Python worker, templates, and the extension bundles workload that ships the M365 connectors in one shot.
 
 ### 2. Get the resources you need
 

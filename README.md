@@ -40,7 +40,7 @@ Five steps: install, get resources, run locally, try it, deploy.
 
 ### 1. Install the tools
 
-The Azure Functions CLI v5 is in preview. Install the latest preview build from the [Azure Functions Core Tools releases page](https://github.com/Azure/azure-functions-core-tools/releases) (look for `Azure.Functions.Cli-osx-arm64-5.*.tar.gz` on Apple Silicon, `-osx-x64-` on Intel, `-linux-x64-` on Linux, or `-win-x64-` on Windows). Extract it into its own directory and put a `func5` shim on your `PATH` so v5 sits alongside any existing v4 `func` install.
+The Azure Functions CLI v5 is in preview. Install the latest preview build from the [Azure Functions Core Tools releases page](https://github.com/Azure/azure-functions-core-tools/releases) (look for `func-osx-arm64.tar.gz` on Apple Silicon, `func-osx-x64.tar.gz` on Intel, `func-linux-x64.tar.gz` / `func-linux-arm64.tar.gz` on Linux, or `func-win-x64.zip` / `func-win-arm64.zip` on Windows). Extract it into its own directory and put a `func5` shim on your `PATH` so v5 sits alongside any existing v4 `func` install.
 
 **macOS / Linux:**
 ```bash
@@ -50,16 +50,17 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Install Functions CLI v5 as func5 (leaves any existing func/v4 alone)
 FUNC5_DIR="$HOME/.azure-functions/v5"
 mkdir -p "$FUNC5_DIR" && cd "$FUNC5_DIR"
-# Replace the URL with the latest v5 preview asset for your OS/arch from the releases page above
-curl -LO https://github.com/Azure/azure-functions-core-tools/releases/download/v5.0.0-preview.2/Azure.Functions.Cli-osx-arm64-5.0.0-preview.2.tar.gz
-tar -xzf Azure.Functions.Cli-osx-arm64-5.0.0-preview.2.tar.gz
+# Swap in the asset for your OS/arch and the latest preview tag from the releases page above
+curl -L -o func5.tar.gz \
+  https://github.com/Azure/azure-functions-core-tools/releases/download/v5.0.0-preview.2/func-osx-arm64.tar.gz
+tar -xzf func5.tar.gz && rm func5.tar.gz
 mkdir -p "$HOME/.local/bin" && ln -sf "$FUNC5_DIR/func" "$HOME/.local/bin/func5"
-# add ~/.local/bin to PATH if it isn't already, then in a fresh shell:
+# Add ~/.local/bin to PATH if it isn't already, then in a fresh shell:
 func5 setup --features python
 ```
 
 **Windows:**
-Install [azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) and [uv](https://docs.astral.sh/uv/getting-started/installation/), then download the v5 preview `Azure.Functions.Cli-win-x64-5.*.zip` from the releases page, extract it to a folder like `C:\func5`, add that folder to your `PATH` as `func5` (rename `func.exe` to `func5.exe` if you want both versions side-by-side), and run:
+Install [azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) and [uv](https://docs.astral.sh/uv/getting-started/installation/), then download the v5 preview `func-win-x64.zip` (or `func-win-arm64.zip`) from the releases page, extract it to a folder like `C:\func5`, rename `func.exe` to `func5.exe` so it sits alongside any existing v4 `func.exe`, add `C:\func5` to your `PATH`, and run:
 ```powershell
 func5 setup --features python
 ```

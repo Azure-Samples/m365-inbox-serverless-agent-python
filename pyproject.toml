@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "M365 inbox-triage sample for the Azure Functions Serverless Agents Runtime (preview)."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "azurefunctions-agents-runtime>=0.1.0b1",
+    "azurefunctions-agents-runtime>=0.1.0b11",
     "azure-functions",
     "azure-identity",
     "pydantic",

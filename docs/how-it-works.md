@@ -66,7 +66,7 @@ Option 5 in `chat.py` opens a short back-and-forth where you ask questions about
 your recent mail ("what's urgent?", "who emailed about the deploy?", "summarize
 the thread from finance"). It is **read-only by design**:
 
-- The `inbox-chat` agent is declared with `mcp: false`, so it has **no tools**.
+- The `inbox-chat` agent is declared with `mcp: false` and `tools: false`, so it has **no tools**.
   It cannot send, reply, post to Teams, or call any connector. This is enforced
   by configuration, not by the model's judgement — read-only is deterministic.
 - The read itself happens in the client: `chat.py` fetches your recent inbox
@@ -74,6 +74,13 @@ the thread from finance"). It is **read-only by design**:
   if anything else is exposed, and injects it as a versioned `INBOX SNAPSHOT`.
   In Offline/DRY it injects `sample-data/inbox/*.json` instead. Type `refresh`
   to re-read, `q` to quit.
+- The client requires `azurefunctions-agents-runtime>=0.1.0b11` and uses the
+  MCP builder's `(tool, error)` return value. A failed live read displays the
+  runtime's reason before explicitly falling back to sample data; a failed
+  refresh displays the error and keeps the previous snapshot.
+- `agents.config.yaml` disables b11's default-on `web_request` system tool
+  app-wide. Other agents retain their existing Outlook/Teams connectors and
+  local `match_rule` tool; this upgrade does not add arbitrary HTTP access.
 - Because the read is client-side, only `chat.py` provides inbox context; a raw
   POST to `/agents/inbox_chat/chat` with no snapshot gets a "no inbox context"
   answer rather than a guess.

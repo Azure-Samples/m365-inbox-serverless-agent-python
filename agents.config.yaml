@@ -1,3 +1,7 @@
 # Global configuration for all agents in this function app.
 
 timeout: 300
+
+# Preserve connector-only behavior instead of enabling b11's new HTTP tool.
+system_tools:
+  web_request: false

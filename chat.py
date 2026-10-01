@@ -799,9 +799,9 @@ def _read_inbox_live(top: int = INBOX_CHAT_TOP) -> tuple[list[dict] | None, str 
     server = dict(server)
     server["tools"] = [ALLOWED_READ_OP]  # deterministic read-only allow-list
 
-    tool = _build_mcp_tool("outlook_read", server)
+    tool, error = _build_mcp_tool("outlook_read", server)
     if tool is None:
-        return None, "Outlook MCP endpoint not configured"
+        return None, error or "Outlook MCP endpoint not configured"
 
     async def _go() -> list[dict]:
         async with tool:

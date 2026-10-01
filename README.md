@@ -18,21 +18,12 @@ Run it locally in minutes against sample data, point it at your real inbox, then
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg" width="20" align="center"> Prerequisites
 
-- Python 3.13+. Easiest install: [uv](https://docs.astral.sh/uv/), then `uv python install 3.13`.
-- [Azure Functions Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local) ≥ 4.12.0 (the v5 preview is not yet compatible).
-- [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/).
-- An Azure subscription. `azd provision` (Quickstart step 2) creates the Microsoft Foundry model deployment the agents need - required even for the offline path.
-- For real M365 (or `azd up`): permission to authorize Microsoft 365 connectors, plus the `connector-namespace` CLI extension:
-
-**macOS / Linux:**
-```bash
-curl -fsSL https://aka.ms/connector-namespace-cli-install | sh
-```
-
-**Windows:**
-```powershell
-powershell -Command "Invoke-WebRequest -Uri 'https://aka.ms/connector-namespace-cli-install' -OutFile 'install.sh'; wsl bash install.sh"
-```
+- [uv](https://docs.astral.sh/uv/), then `uv python install 3.13`.
+- [Azurite](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=npm-package) for local storage emulation (e.g. `npm install -g azurite`). `func5` launches it on demand if it's on your `PATH`.
+- [Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
+- [Azure Functions Core Tools v5 (preview)](https://github.com/Azure/azure-functions-core-tools/releases). This template calls the binary `func5` so v5 sits alongside any existing v4 `func`. Already on v4? See [Troubleshooting: still using v4](docs/troubleshooting.md#still-using-v4).
+- [Azure CLI `connector-namespace` extension](https://github.com/Azure/Connectors/tree/main/public-preview/connector-namespace-cli) — needed for `azd up` and real M365 connectors.
+- An Azure subscription. `azd provision` (Quickstart step 2) creates the Microsoft Foundry model deployment the agents need, required even for the offline path.
 
 ## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Rocket/SVG/ic_fluent_rocket_24_regular.svg" width="20" align="center"> Quickstart
 
@@ -40,17 +31,11 @@ Five steps: install, get resources, run locally, try it, deploy.
 
 ### 1. Install the tools
 
-**macOS:**
-```bash
-brew tap azure/functions
-brew install azure-functions-core-tools@4
-brew install azure-dev
-npm install -g azurite
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+Follow the prereq links above and make sure the v5 binary is on your `PATH` as `func5`. Then run this once per machine to install the Python worker, templates, and extension bundles (which ships the M365 connectors):
 
-**Linux / Windows / WSL:**
-Use the [Core Tools v4 install guide](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools), [azd install guide](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd), [Azurite install guide](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite), and [uv install guide](https://docs.astral.sh/uv/getting-started/installation/).
+```bash
+func5 setup --features python
+```
 
 ### 2. Get the resources you need
 
@@ -73,14 +58,13 @@ azd provision
 ### 3. Run the local client
 
 ```bash
-azurite --silent --skipApiVersionCheck --location .azurite   # terminal A
-uv run func start                      # terminal B
-uv run python chat.py                  # terminal C
+func5 run                              # terminal A (v5 auto-starts Azurite)
+uv run python chat.py                  # terminal B
 ```
 
 (These commands work identically on macOS, Linux, and Windows.)
 
-> 🪟 **Windows local dev:** If `uv run func start` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix - you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
+> 🪟 **Windows local dev:** If `func5 run` fails with `ModuleNotFoundError: No module named 'azure_functions_agents'`, the Microsoft Store python.exe alias on your `PATH` is shadowing the venv Python. See [Troubleshooting: Windows local dev](docs/troubleshooting.md#windows-local-dev) for the fix - you'll need to remove the Store Python and disable App execution aliases in Windows Settings.
 
 ### 4. Try it (offline, safe)
 
@@ -93,12 +77,16 @@ Want it to act on your real inbox while still local? See [Go live with real M365
 Set who real mail and Teams posts go to, **before** you deploy. Without these, the deployed agents stay in DRY RUN (the chat client's doctor banner will tell you).
 
 ```bash
-azd env set MAILBOX_OWNER_EMAIL you@your-tenant.com     # required for LIVE mail
-azd env set TEAMS_TEAM_ID        <team-id>              # optional, enables Teams alerts
-azd env set TEAMS_CHANNEL_ID     <channel-id>           # optional, enables Teams alerts
+azd env set MAILBOX_OWNER_EMAIL   you@your-tenant.com       # required for LIVE mail
+azd env set TEAMS_TEAM_ID         <team-id>                 # optional, enables Teams alerts
+azd env set TEAMS_CHANNEL_ID      <channel-id>              # optional, enables Teams alerts
+azd env set TEAMS_MENTION_USER_ID "$(az ad signed-in-user show --query id          -o tsv)"   # @mentions you on urgent alerts
+azd env set TEAMS_MENTION_NAME    "$(az ad signed-in-user show --query displayName -o tsv)"   # display name for the @mention
 ```
 
-Get the Teams ids by opening the target channel in Teams → ⋯ → **Get link to channel** (the URL contains both ids), or via [docs/configuration.md](docs/configuration.md).
+Get the Teams ids by opening the target channel in Teams → ⋯ → **Get link to channel** (the URL contains both `groupId=` → `TEAMS_TEAM_ID` and `19:...@thread.tacv2` → `TEAMS_CHANNEL_ID`).
+
+Or run `./infra/scripts/discover-teams-ids.ps1` (or `.sh`) to print all four `azd env set` lines pre-filled. More in [docs/configuration.md](docs/configuration.md).
 
 > Already deployed with placeholders? Set them now and re-run `azd up` (or just `azd provision`) to push the new values to the Function App.
 

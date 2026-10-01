@@ -43,7 +43,6 @@ EOF
 chmod 600 local.settings.json
 echo "Wrote local.settings.json — provider=foundry, model=${FOUNDRY_MODEL}"
 echo ""
-echo "Next: run these in three separate terminals from the project root:"
-echo "  azurite --silent --skipApiVersionCheck --location .azurite   # terminal A"
-echo "  uv run func start                                            # terminal B"
-echo "  uv run python chat.py                                        # terminal C"
+echo "Next: run these in two separate terminals from the project root:"
+echo "  func5 run                  # terminal A (v5 auto-starts Azurite)"
+echo "  uv run python chat.py      # terminal B"

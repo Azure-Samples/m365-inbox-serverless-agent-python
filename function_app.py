@@ -93,8 +93,8 @@ def _patch_mcp_http_read_timeout() -> None:
     responses (e.g. an @mention or Outlook `SendEmailV2`) are unaffected, which is
     why this looks like "Teams posting randomly hangs".
 
-    This is a workaround for the preview runtime; tracked upstream and unfixed on
-    main as of azurefunctions-agents-runtime 0.1.0b1:
+    This is a workaround for the preview runtime; tracked upstream and still
+    needed in azurefunctions-agents-runtime 0.1.0b11:
     https://github.com/Azure/azure-functions-agents-runtime/issues/63
     Remove this shim once `_build_http_client` sets an SSE-friendly read timeout.
     """

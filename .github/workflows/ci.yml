@@ -23,11 +23,30 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Generate targeted lockfile for this replacement PR
+        run: |
+          uv lock --python ${{ matrix.python-version }} \
+            --upgrade-package azurefunctions-agents-runtime==0.1.0b11 \
+            --upgrade-package mcp==1.29.0 \
+            --upgrade-package aiohttp==3.14.3
+
+      - name: Export generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: targeted-uv-lock
+          path: uv.lock
+
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }}
+        run: uv sync --locked --python ${{ matrix.python-version }}
+
+      - name: Read-only inbox regression tests
+        run: uv run --frozen python -m unittest discover -s tests -v
+
+      - name: Isolated runtime compatibility smoke
+        run: uv run --frozen python -m unittest discover -s tests -p runtime_smoke.py -v
 
       - name: Ruff check
-        run: uv run ruff check
+        run: uv run --frozen ruff check
 
       - name: Ruff format check
-        run: uv run ruff format --check
+        run: uv run --frozen ruff format --check

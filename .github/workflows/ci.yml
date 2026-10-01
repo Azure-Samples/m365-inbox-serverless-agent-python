@@ -23,19 +23,6 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Generate targeted lockfile for this replacement PR
-        run: |
-          uv lock --python ${{ matrix.python-version }} \
-            --upgrade-package azurefunctions-agents-runtime==0.1.0b11 \
-            --upgrade-package mcp==1.29.0 \
-            --upgrade-package aiohttp==3.14.3
-
-      - name: Export generated lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: targeted-uv-lock
-          path: uv.lock
-
       - name: Install dependencies
         run: uv sync --locked --python ${{ matrix.python-version }}
 

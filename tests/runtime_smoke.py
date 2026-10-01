@@ -87,7 +87,8 @@ class RuntimeCompatibilityTests(unittest.TestCase):
         matcher = SimpleNamespace(name="match_rule")
         connectors = {name: SimpleNamespace(name=name) for name in ("outlook", "teams")}
         for spec in specs:
-            with self.subTest(agent=spec.source_file.name):
+            source_name = Path(spec.source_file).name
+            with self.subTest(agent=source_name):
                 resolved = compose(
                     spec, global_config, discovered_mcp_names=list(connectors), discovered_skill_names=[]
                 )
@@ -103,7 +104,7 @@ class RuntimeCompatibilityTests(unittest.TestCase):
                 self.assertEqual(resolved.builtin_endpoints.http_auth.mode, "function")
                 self.assertEqual(capabilities.web_request_tools, [])
                 self.assertEqual(capabilities.filtered_workflow_tools, [])
-                if spec.source_file.name == "inbox-chat.agent.md":
+                if source_name == "inbox-chat.agent.md":
                     self.assertEqual(capabilities.filtered_user_tools, [])
                     self.assertEqual(capabilities.filtered_mcp_tools, [])
                 else:
